@@ -3,14 +3,7 @@ title = "gitleaks config for kinsen-chat"
 [extend]
 useDefault = true
 
-[[allowlists]]
-description = "Allow documented placeholder auth headers in README examples"
-paths = ['''README\.md''']
-regexes = [
-  '''Authorization:\s*Bearer\s+(your-admin-token|\$ADMIN_TOKEN|\$\{ADMIN_TOKEN\}|<ADMIN_TOKEN>)''',
-]
-
-[[allowlists]]
-description = "Allow legacy README placeholders from known bootstrap commit"
+[allowlist]
+description = "Allow legacy README placeholder auth header examples"
 paths = ['''README\.md''']
 commits = ["fb34688105be364b4ca385dbfefa0653adf6508c"]
