@@ -1,224 +1,109 @@
 import { useState, FormEvent } from 'react';
-import { Alert, Badge, Button, Card, InputField, PageShell } from './ui';
 
 interface UserInfo {
+  id: string;
   name: string;
-  email?: string;
   role: string;
 }
 
-interface Props {
-  onSuccess: (user: UserInfo) => void;
+interface LoginGateProps {
+  onSuccess: (user: UserInfo, token: string) => void;
   darkMode: boolean;
 }
 
-export function LoginGate({ onSuccess, darkMode }: Props) {
-  const [mode, setMode] = useState<'passcode' | 'email' | 'signup'>('passcode');
+export function LoginGate({ onSuccess, darkMode }: LoginGateProps) {
   const [name, setName] = useState('');
-  const [passcode, setPasscode] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!name.trim()) {
+      setError('Name is required');
+      return;
+    }
+    if (!/^\d{4}$/.test(pin)) {
+      setError('PIN must be exactly 4 digits');
+      return;
+    }
+
     setLoading(true);
-
     try {
-      const endpoint =
-        mode === 'passcode'
-          ? '/api/auth'
-          : mode === 'signup'
-            ? '/api/auth/signup'
-            : '/api/auth/login';
-
-      const body =
-        mode === 'passcode'
-          ? { passcode }
-          : mode === 'signup'
-            ? { name, email, password }
-            : { email, password };
-
-      const res = await fetch(endpoint, {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(body),
+        body: JSON.stringify({ name: name.trim(), pin }),
       });
 
       const data = (await res.json()) as {
         ok?: boolean;
         error?: string;
-        details?: string[];
+        token?: string;
         user?: UserInfo;
       };
 
-      if (res.ok && data.user) {
-        onSuccess(data.user);
-      } else {
-        const details =
-          Array.isArray(data.details) && data.details.length > 0
-            ? ` ${data.details.join('. ')}`
-            : '';
-        setError((data.error || 'Authentication failed') + details);
+      if (!res.ok) {
+        setError(data.error || 'Login failed');
+        return;
       }
+
+      if (data.user && data.token) onSuccess(data.user, data.token);
     } catch {
-      setError('Connection error. Please try again.');
+      setError('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <PageShell className="login-container" data-theme={darkMode ? 'dark' : 'light'}>
-      <Card className="login-card" elevated>
-        <div className="login-logo-wrap">
-          <div className="login-logo" aria-hidden="true">
-            <svg viewBox="0 0 100 100" width="56" height="56">
-              <rect width="100" height="100" rx="20" fill="#1e40af" />
-              <text
-                x="50"
-                y="68"
-                fontFamily="Arial"
-                fontSize="50"
-                fontWeight="bold"
-                fill="white"
-                textAnchor="middle"
-              >
-                K
-              </text>
-            </svg>
-          </div>
-          <Badge tone="info">Operations Hub</Badge>
-        </div>
-        <h1>Kinsen Chat</h1>
-        <p className="login-subtitle">Car Rental Operations Hub</p>
-
-        <div className="login-tabs">
-          <button
-            className={`login-tab ${mode === 'passcode' ? 'active' : ''}`}
-            onClick={() => setMode('passcode')}
-            type="button"
-            aria-pressed={mode === 'passcode'}
-            data-testid="tab-passcode"
-          >
-            Passcode
-          </button>
-          <button
-            className={`login-tab ${mode === 'email' ? 'active' : ''}`}
-            onClick={() => setMode('email')}
-            type="button"
-            aria-pressed={mode === 'email'}
-            data-testid="tab-email"
-          >
-            Email Login
-          </button>
-          <button
-            className={`login-tab ${mode === 'signup' ? 'active' : ''}`}
-            onClick={() => setMode('signup')}
-            type="button"
-            aria-pressed={mode === 'signup'}
-            data-testid="tab-signup"
-          >
-            Sign Up
-          </button>
+    <div className={`login-container ${darkMode ? 'dark' : ''}`}>
+      <div className="login-card">
+        <div className="login-header">
+          <h1>Kinsen Station AI</h1>
+          <p>Collaborative AI Chat Workspace</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="ui-form-stack" aria-label="Authentication form">
-          {mode === 'passcode' ? (
-            <InputField
-              id="passcode"
-              label="Staff passcode"
-              type="password"
-              value={passcode}
-              onChange={(e) => setPasscode(e.target.value)}
-              placeholder="Enter staff passcode"
-              autoFocus
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="form-group">
+            <label htmlFor="login-name">Name</label>
+            <input
+              id="login-name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your name"
+              autoComplete="username"
               disabled={loading}
-              data-testid="passcode-input"
             />
-          ) : mode === 'signup' ? (
-            <>
-              <InputField
-                id="name"
-                label="Full name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Jane Smith"
-                autoFocus
-                disabled={loading}
-                data-testid="signup-name-input"
-              />
-              <InputField
-                id="email-signup"
-                label="Work email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email address"
-                disabled={loading}
-                data-testid="signup-email-input"
-              />
-              <InputField
-                id="password-signup"
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                disabled={loading}
-                data-testid="signup-password-input"
-              />
-            </>
-          ) : (
-            <>
-              <InputField
-                id="email-login"
-                label="Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email address"
-                autoFocus
-                disabled={loading}
-                data-testid="login-email-input"
-              />
-              <InputField
-                id="password-login"
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                disabled={loading}
-                data-testid="login-password-input"
-              />
-            </>
-          )}
-          <Button
-            type="submit"
-            disabled={
-              loading ||
-              (mode === 'passcode'
-                ? !passcode
-                : !email || !password || (mode === 'signup' && !name))
-            }
-            data-testid="auth-submit"
-          >
-            {loading ? 'Working…' : mode === 'signup' ? 'Create Account' : 'Sign In'}
-          </Button>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="login-pin">4-Digit PIN</label>
+            <input
+              id="login-pin"
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              pattern="\d{4}"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="0000"
+              autoComplete="current-password"
+              disabled={loading}
+            />
+          </div>
+
+          {error && <div className="login-error">{error}</div>}
+
+          <button type="submit" className="login-btn" disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
         </form>
-        {error && (
-          <Alert tone="danger" className="login-error-wrap">
-            <p className="login-error" aria-live="assertive">
-              {error}
-            </p>
-          </Alert>
-        )}
-      </Card>
-    </PageShell>
+      </div>
+    </div>
   );
 }

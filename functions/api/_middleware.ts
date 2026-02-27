@@ -4,63 +4,40 @@ import { parseCookies } from '../../src/lib/crypto';
 import { hasPermission } from '../../src/lib/users';
 
 const RATE_LIMIT_WINDOW = 60; // seconds
-const RATE_LIMIT_MAX = 30; // requests per window
-const AUTH_RATE_LIMIT_MAX = 12; // tighter limit for auth endpoints
-const BRUTE_FORCE_MAX = 5; // max failed auth attempts
+const RATE_LIMIT_MAX = 30;
+const AUTH_RATE_LIMIT_MAX = 12;
+const BRUTE_FORCE_MAX = 5;
 const BRUTE_FORCE_WINDOW = 900; // 15 minute lockout
 
 // Map URL paths to required permissions
 function getRequiredPermission(path: string, method: string): string | null {
-  if (path === '/api/health') return null; // public
-  if (
-    path === '/api/auth' ||
-    path.startsWith('/api/auth/login') ||
-    path.startsWith('/api/auth/signup')
-  ) {
-    return null; // public auth entrypoints
-  }
+  if (path === '/api/health') return null;
+  if (path.startsWith('/api/auth/login')) return null;
   if (path.startsWith('/api/auth/me') || path.startsWith('/api/auth/logout')) return 'chat';
-  if (path.startsWith('/api/admin/seed')) return 'admin:seed';
-  if (path.startsWith('/api/admin/knowledge')) {
-    return method === 'GET' ? 'admin:knowledge:read' : 'admin:knowledge:write';
-  }
-  if (path.startsWith('/api/admin/analytics')) return 'admin:analytics';
   if (path.startsWith('/api/admin/users')) {
     return method === 'GET' ? 'admin:users:read' : 'admin:users:write';
   }
-  if (path.startsWith('/api/admin/export')) return 'admin:export';
-  if (path.startsWith('/api/admin/audit')) return 'admin:audit';
-  if (path.startsWith('/api/admin/flags')) {
-    return method === 'GET' ? 'admin:knowledge:read' : 'admin:settings';
-  }
-  if (path.startsWith('/api/admin/webhooks')) return 'admin:settings';
-  if (path.startsWith('/api/admin/versions')) {
-    return method === 'GET' ? 'admin:knowledge:read' : 'admin:knowledge:write';
-  }
-  if (path.startsWith('/api/admin/settings')) return 'admin:settings';
-  if (path.startsWith('/api/feedback')) return 'feedback';
-  if (path.startsWith('/api/macros')) return 'macros';
-  if (path.startsWith('/api/checklists')) return 'checklists';
-  if (path.startsWith('/api/workflows')) return 'chat';
-  if (path.startsWith('/api/escalations')) return 'chat';
-  if (path.startsWith('/api/customers')) return 'chat';
-  if (path.startsWith('/api/vehicles')) return 'chat';
-  if (path.startsWith('/api/fleet')) return 'chat';
-  if (path.startsWith('/api/email')) return 'chat';
+  if (path === '/api/users' && method === 'POST') return 'admin:users:write';
+  if (path.startsWith('/api/users/')) return 'chat';
+  if (path === '/api/chat/lock' || path === '/api/chat/unlock') return 'chat:lock';
+  if (path === '/api/chat/history') return 'chat:history';
+  if (path === '/api/chat/save') return 'chat:save';
+  if (path === '/api/chat/sessions') return 'chat';
+  if (path === '/api/chat') return 'chat';
+  if (path === '/api/shortcuts' && method === 'GET') return 'shortcuts';
+  if (path === '/api/shortcuts' && method === 'POST') return 'shortcuts';
+  if (path.startsWith('/api/shortcuts/') && method === 'DELETE') return 'shortcuts';
+  if (path.startsWith('/api/user/profile')) return 'user:profile';
   if (path.startsWith('/api/notifications')) return 'chat';
   if (path.startsWith('/api/preferences')) return 'chat';
-  if (path.startsWith('/api/suggest')) return 'chat';
-  if (path.startsWith('/api/user-sessions')) return 'chat';
+  if (path.startsWith('/api/sessions')) return 'admin:sessions';
   return 'chat';
 }
 
 export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
   const url = new URL(request.url);
-  const isAuthEndpoint =
-    url.pathname === '/api/auth' ||
-    url.pathname.startsWith('/api/auth/login') ||
-    url.pathname.startsWith('/api/auth/signup');
+  const isAuthEndpoint = url.pathname.startsWith('/api/auth/login');
 
   // CORS + security headers
   const corsHeaders: Record<string, string> = {
@@ -84,7 +61,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const ip =
     request.headers.get('CF-Connecting-IP') || request.headers.get('x-forwarded-for') || 'unknown';
 
-  // Enforce same-origin for state-changing requests if Origin is present.
+  // Enforce same-origin for state-changing requests
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
     const origin = request.headers.get('Origin');
     if (origin && origin !== url.origin) {
@@ -154,32 +131,40 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         env.KV.put(bruteKey, String(count + 1), { expirationTtl: BRUTE_FORCE_WINDOW }),
       );
     } else if (isAuthEndpoint && response.status >= 200 && response.status < 300) {
-      // Reset brute force counter on success
       context.waitUntil(env.KV.delete(`brute:${ip}`));
     }
 
     return newResponse;
   }
 
-  // Admin endpoints: check Authorization header first (API token)
-  if (url.pathname.startsWith('/api/admin')) {
-    const authHeader = request.headers.get('Authorization');
-    if (authHeader && authHeader === `Bearer ${env.ADMIN_TOKEN}`) {
-      // API token auth — full admin access, proceed
+  // Resolve session token from: Authorization Bearer header → cookie fallback
+  const authHeader = request.headers.get('Authorization');
+  let sessionToken: string | null = null;
+
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7);
+    // Check if it's the static ADMIN_TOKEN (admin API automation)
+    if (
+      token === env.ADMIN_TOKEN &&
+      (url.pathname.startsWith('/api/admin') || url.pathname === '/api/users')
+    ) {
       const response = await context.next();
       const newResponse = new Response(response.body, response);
       for (const [key, value] of Object.entries(corsHeaders)) {
         newResponse.headers.set(key, value);
       }
-      // Audit log
-      logAudit(context, env, url.pathname, request.method, ip, 'api-token');
       return newResponse;
     }
+    // Otherwise treat as user session token
+    sessionToken = token;
   }
 
-  // Session-based auth for all other endpoints
-  const cookies = parseCookies(request.headers.get('Cookie'));
-  const sessionToken = cookies['kinsen_session'];
+  // Fallback to cookie-based session
+  if (!sessionToken) {
+    const cookies = parseCookies(request.headers.get('Cookie'));
+    sessionToken = cookies['kinsen_session'] || null;
+  }
+
   if (!sessionToken) {
     return new Response(JSON.stringify({ error: 'Not authenticated' }), {
       status: 401,
@@ -196,7 +181,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   // RBAC check
-  const userRole = (session.role || 'agent') as UserRole;
+  const userRole = (session.role || 'user') as UserRole;
   if (!hasPermission(userRole, requiredPermission)) {
     return new Response(
       JSON.stringify({ error: 'Insufficient permissions', required: requiredPermission }),
@@ -209,21 +194,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   // Pass user info to downstream handlers
   (context.data as Record<string, unknown>).user = {
-    userId: session.userId || 'passcode-user',
-    email: session.email,
-    name: session.name || 'Staff',
+    userId: session.userId,
+    name: session.name || 'User',
     role: userRole,
   };
-
-  // Audit log
-  logAudit(
-    context,
-    env,
-    url.pathname,
-    request.method,
-    ip,
-    session.email || session.userId || 'passcode-user',
-  );
 
   const response = await context.next();
   const newResponse = new Response(response.body, response);
@@ -232,22 +206,3 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
   return newResponse;
 };
-
-function logAudit(
-  context: EventContext<Env, any, any>,
-  env: Env,
-  path: string,
-  method: string,
-  ip: string,
-  user: string,
-) {
-  const auditEntry = JSON.stringify({
-    ts: new Date().toISOString(),
-    method,
-    path,
-    ip,
-    user,
-  });
-  const auditKey = `audit:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  context.waitUntil(env.KV.put(auditKey, auditEntry, { expirationTtl: 86400 * 30 }));
-}

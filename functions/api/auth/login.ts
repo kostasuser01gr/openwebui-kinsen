@@ -1,34 +1,41 @@
 import type { Env } from '../../../src/lib/types';
 import { buildSessionCookie, isSecureRequest } from '../../lib/auth-session';
-import { loginUser } from '../../../src/lib/users';
+import { loginUserByName } from '../../../src/lib/users';
 
 interface LoginBody {
-  email?: string;
-  password?: string;
+  name?: string;
+  pin?: string;
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
     const body = (await request.json()) as LoginBody;
-    const email = (body.email || '').trim().toLowerCase();
-    const password = body.password || '';
+    const name = (body.name || '').trim();
+    const pin = body.pin || '';
 
-    if (!email || !password) {
-      return new Response(JSON.stringify({ error: 'email and password are required' }), {
+    if (!name || !pin) {
+      return new Response(JSON.stringify({ error: 'name and pin are required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const result = await loginUser(
+    if (!/^\d{4}$/.test(pin)) {
+      return new Response(JSON.stringify({ error: 'PIN must be exactly 4 digits' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const result = await loginUserByName(
       env,
-      email,
-      password,
+      name,
+      pin,
       request.headers.get('CF-Connecting-IP') || 'unknown',
     );
 
     if (!result) {
-      return new Response(JSON.stringify({ error: 'Invalid email or password' }), {
+      return new Response(JSON.stringify({ error: 'Invalid name or PIN' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -37,7 +44,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return new Response(
       JSON.stringify({
         ok: true,
-        user: { name: result.session.name, email: result.session.email, role: result.session.role },
+        token: result.token,
+        user: {
+          id: result.user.id,
+          name: result.user.name,
+          role: result.user.role,
+        },
       }),
       {
         status: 200,

@@ -1,12 +1,9 @@
-// User preferences API
 import type { Env, UserPreferences } from '../../src/lib/types';
 
 const DEFAULT_PREFS: Omit<UserPreferences, 'userId'> = {
-  pinnedMacros: [],
-  recentSearches: [],
-  language: 'en',
+  darkMode: false,
   compactMode: false,
-  notificationsEnabled: true,
+  language: 'en',
 };
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
@@ -14,9 +11,13 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const userId = user?.userId || 'anonymous';
 
   const raw = await ctx.env.KV.get(`preferences:${userId}`);
-  if (raw) return new Response(raw);
+  if (raw) {
+    return new Response(raw, { headers: { 'Content-Type': 'application/json' } });
+  }
 
-  return new Response(JSON.stringify({ userId, ...DEFAULT_PREFS }));
+  return new Response(JSON.stringify({ userId, ...DEFAULT_PREFS }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 };
 
 export const onRequestPut: PagesFunction<Env> = async (ctx) => {
@@ -27,16 +28,12 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
   const raw = await ctx.env.KV.get(`preferences:${userId}`);
   const current: UserPreferences = raw ? JSON.parse(raw) : { userId, ...DEFAULT_PREFS };
 
-  if (body.pinnedMacros !== undefined) current.pinnedMacros = body.pinnedMacros;
-  if (body.recentSearches !== undefined) {
-    current.recentSearches = body.recentSearches.slice(0, 20);
-  }
-  if (body.language) current.language = body.language;
-  if (body.defaultBranch !== undefined) current.defaultBranch = body.defaultBranch;
+  if (body.darkMode !== undefined) current.darkMode = body.darkMode;
   if (body.compactMode !== undefined) current.compactMode = body.compactMode;
-  if (body.notificationsEnabled !== undefined)
-    current.notificationsEnabled = body.notificationsEnabled;
+  if (body.language) current.language = body.language;
 
   await ctx.env.KV.put(`preferences:${userId}`, JSON.stringify(current));
-  return new Response(JSON.stringify({ ok: true, preferences: current }));
+  return new Response(JSON.stringify({ ok: true, preferences: current }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 };

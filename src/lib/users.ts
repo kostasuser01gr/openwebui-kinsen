@@ -1,20 +1,21 @@
 import type { User, UserRole, UserSession, Env } from './types';
-import { sha256, generateSessionId } from './crypto';
+import { hashPin, generateSessionId, generateUserId } from './crypto';
 
 // Permissions matrix: which roles can access which features
 const PERMISSIONS: Record<string, UserRole[]> = {
-  chat: ['agent', 'supervisor', 'manager', 'admin'],
-  macros: ['agent', 'supervisor', 'manager', 'admin'],
-  checklists: ['agent', 'supervisor', 'manager', 'admin'],
-  feedback: ['agent', 'supervisor', 'manager', 'admin'],
-  'admin:knowledge:read': ['supervisor', 'manager', 'admin'],
-  'admin:knowledge:write': ['manager', 'admin'],
-  'admin:analytics': ['supervisor', 'manager', 'admin'],
-  'admin:users:read': ['manager', 'admin'],
+  chat: ['user', 'coordinator', 'admin'],
+  shortcuts: ['user', 'coordinator', 'admin'],
+  'shortcuts:global': ['admin'],
+  'chat:lock': ['coordinator', 'admin'],
+  'chat:unlock': ['coordinator', 'admin'],
+  'chat:history': ['user', 'coordinator', 'admin'],
+  'chat:save': ['user', 'coordinator', 'admin'],
+  'chat:view_all': ['coordinator', 'admin'],
+  'user:profile': ['user', 'coordinator', 'admin'],
+  'admin:users:read': ['admin'],
   'admin:users:write': ['admin'],
-  'admin:export': ['manager', 'admin'],
-  'admin:audit': ['admin'],
-  'admin:seed': ['admin'],
+  'admin:sessions': ['coordinator', 'admin'],
+  'admin:moderation': ['coordinator', 'admin'],
   'admin:settings': ['admin'],
 };
 
@@ -24,43 +25,35 @@ export function hasPermission(role: UserRole, permission: string): boolean {
   return allowedRoles.includes(role);
 }
 
-export async function hashPassword(password: string): Promise<string> {
-  // Use SHA-256 with a prefix salt (simple but works for internal tool)
-  return sha256(`kinsen:${password}`);
-}
-
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const computed = await hashPassword(password);
-  return computed === hash;
+export function isValidPin(pin: string): boolean {
+  return /^\d{4}$/.test(pin);
 }
 
 export async function createUser(
   env: Env,
-  email: string,
   name: string,
-  password: string,
-  role: UserRole = 'agent',
+  role: UserRole,
+  pin: string,
 ): Promise<User> {
-  const id = email.toLowerCase().replace(/[^a-z0-9]/g, '-');
-  const passwordHash = await hashPassword(password);
+  const id = generateUserId();
+  const pinHash = await hashPin(pin, env.PIN_SALT_SECRET);
+
   const user: User = {
     id,
-    email: email.toLowerCase(),
     name,
     role,
-    passwordHash,
     active: true,
     createdAt: new Date().toISOString(),
   };
 
   await env.KV.put(`user:${id}`, JSON.stringify(user));
+  await env.KV.put(`auth:${id}`, pinHash);
 
   // Update user index
-  const index = (await env.KV.get('user:index', 'json')) as string[] | null;
-  const ids = index || [];
-  if (!ids.includes(id)) {
-    ids.push(id);
-    await env.KV.put('user:index', JSON.stringify(ids));
+  const index = ((await env.KV.get('user:index', 'json')) as string[] | null) || [];
+  if (!index.includes(id)) {
+    index.push(id);
+    await env.KV.put('user:index', JSON.stringify(index));
   }
 
   return user;
@@ -70,29 +63,27 @@ export async function getUserById(env: Env, id: string): Promise<User | null> {
   return env.KV.get(`user:${id}`, 'json') as Promise<User | null>;
 }
 
-export async function getUserByEmail(env: Env, email: string): Promise<User | null> {
-  const id = email.toLowerCase().replace(/[^a-z0-9]/g, '-');
-  return getUserById(env, id);
-}
-
 export async function getAllUsers(env: Env): Promise<User[]> {
-  const index = (await env.KV.get('user:index', 'json')) as string[] | null;
-  if (!index || index.length === 0) return [];
+  const index = ((await env.KV.get('user:index', 'json')) as string[] | null) || [];
+  if (index.length === 0) return [];
   const users = await Promise.all(index.map((id) => getUserById(env, id)));
   return users.filter(Boolean) as User[];
 }
 
 export async function loginUser(
   env: Env,
-  email: string,
-  password: string,
+  userId: string,
+  pin: string,
   ip: string,
 ): Promise<{ session: UserSession; token: string } | null> {
-  const user = await getUserByEmail(env, email);
+  const user = await getUserById(env, userId);
   if (!user || !user.active) return null;
 
-  const valid = await verifyPassword(password, user.passwordHash);
-  if (!valid) return null;
+  const storedHash = await env.KV.get(`auth:${userId}`);
+  if (!storedHash) return null;
+
+  const pinHash = await hashPin(pin, env.PIN_SALT_SECRET);
+  if (pinHash !== storedHash) return null;
 
   // Update last login
   user.lastLoginAt = new Date().toISOString();
@@ -102,7 +93,6 @@ export async function loginUser(
   const token = generateSessionId();
   const session: UserSession = {
     userId: user.id,
-    email: user.email,
     name: user.name,
     role: user.role,
     createdAt: new Date().toISOString(),
@@ -113,6 +103,17 @@ export async function loginUser(
   return { session, token };
 }
 
-export async function getSession(env: Env, token: string): Promise<UserSession | null> {
-  return env.KV.get(`session:${token}`, 'json') as Promise<UserSession | null>;
+export async function loginUserByName(
+  env: Env,
+  name: string,
+  pin: string,
+  ip: string,
+): Promise<{ session: UserSession; token: string; user: User } | null> {
+  const allUsers = await getAllUsers(env);
+  const user = allUsers.find((u) => u.name.toLowerCase() === name.toLowerCase() && u.active);
+  if (!user) return null;
+
+  const result = await loginUser(env, user.id, pin, ip);
+  if (!result) return null;
+  return { ...result, user };
 }

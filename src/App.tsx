@@ -1,220 +1,117 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { LoginGate } from './components/LoginGate';
 import { ChatWindow } from './components/ChatWindow';
-import { AdminPanel } from './components/admin/AdminPanel';
-import OnboardingTour from './components/OnboardingTour';
-import CommandPalette from './components/CommandPalette';
-import NotificationCenter, { NotificationBell } from './components/NotificationCenter';
-import VehicleBoard from './components/VehicleBoard';
-import { ToastProvider, ErrorBoundary } from './components/ChatExtras';
-import type { UserPreferences, Notification as NotifType } from './lib/types';
+import { AdminPanel } from './components/AdminPanel';
 
 interface UserInfo {
+  id: string;
   name: string;
-  email?: string;
   role: string;
-}
-
-interface AuthMeResponse {
-  ok?: boolean;
-  user?: UserInfo;
 }
 
 export default function App() {
   const [authenticated, setAuthenticated] = useState(false);
   const [checking, setChecking] = useState(true);
   const [user, setUser] = useState<UserInfo | null>(null);
-  const [view, setView] = useState<'chat' | 'admin' | 'vehicles'>('chat');
+  const [token, setToken] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('kinsen-token');
+    }
+    return null;
+  });
+  const [view, setView] = useState<'chat' | 'admin'>('chat');
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('kinsen-dark-mode') === 'true';
     }
     return false;
   });
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
-  const [showOnboarding, setShowOnboarding] = useState(true);
-  // Actions triggered by command palette, forwarded to ChatWindow
-  const [pendingAction, setPendingAction] = useState<{ action: string; payload?: unknown } | null>(
-    null,
-  );
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
     localStorage.setItem('kinsen-dark-mode', String(darkMode));
   }, [darkMode]);
 
-  // Session check
+  // Session check — try stored token first, then cookie fallback
   useEffect(() => {
-    fetch('/api/auth/me', { credentials: 'include' })
-      .then((res) => {
-        if (res.ok) {
-          return res.json() as Promise<AuthMeResponse>;
-        }
-        return null;
-      })
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    fetch('/api/auth/me', { headers, credentials: 'include' })
+      .then((res) => (res.ok ? (res.json() as Promise<{ user?: UserInfo }>) : null))
       .then((data) => {
         if (data?.user) {
           setAuthenticated(true);
           setUser(data.user);
-          localStorage.setItem('kinsen-user', JSON.stringify(data.user));
+        } else {
+          // Clear stale token
+          sessionStorage.removeItem('kinsen-token');
+          setToken(null);
         }
       })
       .catch(() => {})
       .finally(() => setChecking(false));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load preferences & notifications after auth
-  useEffect(() => {
-    if (!authenticated) return;
-    fetch('/api/preferences', { credentials: 'include' })
-      .then((r) => (r.ok ? (r.json() as Promise<UserPreferences>) : null))
-      .then((p) => {
-        if (p) setPreferences(p);
-      })
-      .catch(() => {});
-
-    const loadNotifCount = () => {
-      fetch('/api/notifications', { credentials: 'include' })
-        .then((r) => (r.ok ? (r.json() as Promise<NotifType[]>) : []))
-        .then((notifs) => {
-          if (Array.isArray(notifs)) setUnreadCount(notifs.filter((n) => !n.read).length);
-        })
-        .catch(() => {});
-    };
-    loadNotifCount();
-    const interval = setInterval(loadNotifCount, 60000);
-    return () => clearInterval(interval);
-  }, [authenticated]);
-
-  // Global keyboard shortcut for command palette
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setShowCommandPalette((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
-
-  const handleLogin = (userInfo: UserInfo) => {
+  const handleLogin = (userInfo: UserInfo, newToken: string) => {
     setAuthenticated(true);
     setUser(userInfo);
-    localStorage.setItem('kinsen-user', JSON.stringify(userInfo));
+    setToken(newToken);
+    sessionStorage.setItem('kinsen-token', newToken);
   };
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      await fetch('/api/auth/logout', { method: 'POST', headers, credentials: 'include' });
     } catch {
-      // best effort logout
+      // best effort
     } finally {
-      localStorage.removeItem('kinsen-user');
+      sessionStorage.removeItem('kinsen-token');
+      setToken(null);
       setUser(null);
       setAuthenticated(false);
       setView('chat');
     }
   };
 
-  const handleCommandAction = useCallback(
-    (action: string, payload?: unknown) => {
-      switch (action) {
-        case 'toggle-dark':
-          setDarkMode((d) => !d);
-          break;
-        case 'open-admin':
-          setView('admin');
-          break;
-        case 'open-vehicles':
-          setView('vehicles');
-          break;
-        default:
-          // Forward to ChatWindow via pending action
-          setPendingAction({ action, payload });
-          if (view !== 'chat') setView('chat');
-          break;
-      }
-    },
-    [view],
-  );
-
   if (checking) {
     return (
       <div className="loading-screen">
         <div className="spinner" />
-        <p>Loading Kinsen Chat…</p>
+        <p>Loading Kinsen Station AI...</p>
       </div>
     );
   }
 
-  if (!authenticated) {
+  if (!authenticated || !token) {
+    return <LoginGate onSuccess={handleLogin} darkMode={darkMode} />;
+  }
+
+  const isAdminOrCoord = user?.role === 'admin' || user?.role === 'coordinator';
+
+  if (view === 'admin' && isAdminOrCoord) {
     return (
-      <ToastProvider>
-        <LoginGate onSuccess={handleLogin} darkMode={darkMode} />
-      </ToastProvider>
+      <AdminPanel
+        user={user!}
+        token={token}
+        darkMode={darkMode}
+        onToggleDark={() => setDarkMode(!darkMode)}
+        onBack={() => setView('chat')}
+      />
     );
   }
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'supervisor';
-
   return (
-    <ToastProvider>
-      <ErrorBoundary>
-        {showOnboarding && <OnboardingTour onComplete={() => setShowOnboarding(false)} />}
-        {showCommandPalette && (
-          <CommandPalette
-            onClose={() => setShowCommandPalette(false)}
-            onAction={handleCommandAction}
-            preferences={preferences || undefined}
-          />
-        )}
-
-        {view === 'admin' && isAdmin ? (
-          <ErrorBoundary>
-            <AdminPanel
-              user={user!}
-              darkMode={darkMode}
-              onToggleDark={() => setDarkMode(!darkMode)}
-              onBack={() => setView('chat')}
-            />
-          </ErrorBoundary>
-        ) : view === 'vehicles' ? (
-          <ErrorBoundary>
-            <VehicleBoard onClose={() => setView('chat')} />
-          </ErrorBoundary>
-        ) : (
-          <ErrorBoundary>
-            <ChatWindow
-              user={user}
-              darkMode={darkMode}
-              onToggleDark={() => setDarkMode(!darkMode)}
-              onLogout={handleLogout}
-              onOpenAdmin={isAdmin ? () => setView('admin') : undefined}
-              notificationBell={
-                <NotificationBell
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  unreadCount={unreadCount}
-                />
-              }
-              onOpenVehicles={() => setView('vehicles')}
-              onOpenCommandPalette={() => setShowCommandPalette(true)}
-              pendingAction={pendingAction}
-              onActionConsumed={() => setPendingAction(null)}
-              preferences={preferences}
-              onUpdatePreferences={setPreferences}
-            />
-          </ErrorBoundary>
-        )}
-
-        <NotificationCenter
-          isOpen={showNotifications}
-          onClose={() => setShowNotifications(false)}
-        />
-      </ErrorBoundary>
-    </ToastProvider>
+    <ChatWindow
+      user={user}
+      token={token}
+      darkMode={darkMode}
+      onToggleDark={() => setDarkMode(!darkMode)}
+      onLogout={handleLogout}
+      onOpenAdmin={isAdminOrCoord ? () => setView('admin') : undefined}
+    />
   );
 }

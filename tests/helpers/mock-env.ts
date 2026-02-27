@@ -35,17 +35,36 @@ class InMemoryKV {
   async delete(key: string): Promise<void> {
     this.map.delete(key);
   }
+
+  async list(opts?: {
+    prefix?: string;
+    limit?: number;
+  }): Promise<{ keys: { name: string; expiration?: number }[] }> {
+    const prefix = opts?.prefix || '';
+    const limit = opts?.limit || 100;
+    const keys: { name: string }[] = [];
+    for (const key of this.map.keys()) {
+      if (key.startsWith(prefix)) {
+        keys.push({ name: key });
+        if (keys.length >= limit) break;
+      }
+    }
+    return { keys };
+  }
+}
+
+class MockAI {
+  async run(_model: string, _input: any): Promise<any> {
+    return { response: 'Mock AI response for testing' };
+  }
 }
 
 export function createMockEnv(overrides?: Partial<Env>): Env {
   return {
     KV: new InMemoryKV() as unknown as KVNamespace,
-    PASSCODE_HASH: '',
+    AI: new MockAI() as unknown as Ai,
+    PIN_SALT_SECRET: 'test-salt-secret',
     ADMIN_TOKEN: 'test-admin-token',
-    OPENAI_ENABLED: 'false',
-    OPENAI_BASE_URL: '',
-    OPENAI_API_KEY: '',
-    OPENAI_MODEL: 'gpt-3.5-turbo',
     ...overrides,
   };
 }

@@ -10,14 +10,9 @@ export type ErrorCode =
   | 'VALIDATION_ERROR'
   | 'SESSION_EXPIRED'
   | 'INVALID_CREDENTIALS'
-  | 'PASSWORD_TOO_WEAK'
-  | 'PASSWORD_EXPIRED'
-  | 'PASSWORD_REUSED'
-  | 'TOTP_REQUIRED'
-  | 'TOTP_INVALID'
+  | 'SESSION_LOCKED'
   | 'INTERNAL_ERROR'
-  | 'KV_ERROR'
-  | 'QUOTA_EXCEEDED';
+  | 'KV_ERROR';
 
 interface ApiError {
   error: true;
@@ -46,48 +41,4 @@ export function apiError(
       ...(opts?.retryAfter ? { 'Retry-After': String(opts.retryAfter) } : {}),
     },
   });
-}
-
-// Password policy enforcement
-export interface PasswordPolicy {
-  minLength: number;
-  requireUppercase: boolean;
-  requireLowercase: boolean;
-  requireNumber: boolean;
-  requireSpecial: boolean;
-  maxAgeDays: number;
-  preventReuseCount: number;
-}
-
-export const DEFAULT_PASSWORD_POLICY: PasswordPolicy = {
-  minLength: 8,
-  requireUppercase: true,
-  requireLowercase: true,
-  requireNumber: true,
-  requireSpecial: false,
-  maxAgeDays: 90,
-  preventReuseCount: 5,
-};
-
-export function validatePassword(
-  password: string,
-  policy: PasswordPolicy = DEFAULT_PASSWORD_POLICY,
-): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-  if (password.length < policy.minLength) {
-    errors.push(`Password must be at least ${policy.minLength} characters`);
-  }
-  if (policy.requireUppercase && !/[A-Z]/.test(password)) {
-    errors.push('Password must contain an uppercase letter');
-  }
-  if (policy.requireLowercase && !/[a-z]/.test(password)) {
-    errors.push('Password must contain a lowercase letter');
-  }
-  if (policy.requireNumber && !/\d/.test(password)) {
-    errors.push('Password must contain a number');
-  }
-  if (policy.requireSpecial && !/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
-    errors.push('Password must contain a special character');
-  }
-  return { valid: errors.length === 0, errors };
 }

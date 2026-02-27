@@ -10,10 +10,27 @@ export async function sha256(input: string): Promise<string> {
 }
 
 /**
- * Generate a random session ID.
+ * Hash a 4-digit PIN using SHA-256 with the server salt.
+ * Format: SHA256(pin + PIN_SALT_SECRET) per spec.
+ */
+export async function hashPin(pin: string, salt: string): Promise<string> {
+  return sha256(`${pin}${salt}`);
+}
+
+/**
+ * Generate a random session token (UUID-like hex string).
  */
 export function generateSessionId(): string {
   const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Generate a random user ID.
+ */
+export function generateUserId(): string {
+  const array = new Uint8Array(8);
   crypto.getRandomValues(array);
   return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
 }

@@ -1,63 +1,103 @@
 #!/usr/bin/env node
 /**
- * Seed knowledge notes into local wrangler KV (for dev).
+ * Seed initial admin user and sample data into local wrangler KV (for dev).
  * Usage: npm run seed
- * Note: Requires wrangler pages dev running or local KV setup.
  */
 import { execSync } from 'child_process';
-import { readFileSync, writeFileSync, unlinkSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { writeFileSync, unlinkSync } from 'fs';
+import { createHash, randomBytes } from 'crypto';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dir = dirname(__filename);
+const PIN_SALT = 'kinsen-dev-salt-change-in-production';
 
-const seedDataPath = join(__dir, '..', 'src', 'lib', 'seed-data.ts');
-const seedContent = readFileSync(seedDataPath, 'utf-8');
-
-// Extract the SEED_NOTES array
-const match = seedContent.match(/export const SEED_NOTES[^=]*=\s*(\[[\s\S]*\]);/);
-if (!match) {
-  console.error('Could not parse seed data');
-  process.exit(1);
+function sha256(input) {
+  return createHash('sha256').update(input).digest('hex');
 }
 
-const notes = new Function(`return ${match[1]}`)();
+function hashPin(pin) {
+  return sha256(`${pin}${PIN_SALT}`);
+}
 
-console.log(`📚 Seeding ${notes.length} knowledge notes into local KV...`);
-
-const index = notes.map((n) => n.id);
-
-for (const note of notes) {
-  const key = `knowledge:${note.id}`;
-  const tmpFile = `/tmp/kinsen-seed-${note.id}.json`;
-  writeFileSync(tmpFile, JSON.stringify(note));
+function putKV(key, value) {
+  const tmpFile = `/tmp/kinsen-seed-${Date.now()}-${Math.random().toString(36).slice(2)}.json`;
+  writeFileSync(tmpFile, typeof value === 'string' ? value : JSON.stringify(value));
   try {
     execSync(`npx wrangler kv key put --local --binding KV "${key}" --path "${tmpFile}"`, {
       stdio: 'pipe',
     });
-    console.log(`  ✅ ${note.id}: ${note.title}`);
+    console.log(`  + ${key}`);
   } catch (e) {
-    console.error(`  ❌ ${note.id}: ${e.message}`);
+    console.error(`  FAIL ${key}: ${e.message}`);
   }
   try {
     unlinkSync(tmpFile);
   } catch {}
 }
 
-// Write index
-const indexTmp = '/tmp/kinsen-seed-index.json';
-writeFileSync(indexTmp, JSON.stringify(index));
-try {
-  execSync(`npx wrangler kv key put --local --binding KV "knowledge:index" --path "${indexTmp}"`, {
-    stdio: 'pipe',
-  });
-} catch {}
-try {
-  unlinkSync(indexTmp);
-} catch {}
+console.log('Seeding Kinsen Station AI local data...\n');
 
-console.log(`\n✅ Index written with ${index.length} entries`);
-console.log(
-  'Start dev server: npm run dev (in one terminal) + npx wrangler pages dev dist (in another)',
-);
+// Create users
+const users = [
+  { name: 'Admin', role: 'admin', pin: '1234' },
+  { name: 'Coordinator', role: 'coordinator', pin: '5678' },
+  { name: 'Alice', role: 'user', pin: '1111' },
+  { name: 'Bob', role: 'user', pin: '2222' },
+];
+
+const userIndex = [];
+
+for (const u of users) {
+  const id = randomBytes(8).toString('hex');
+  userIndex.push(id);
+
+  const user = {
+    id,
+    name: u.name,
+    role: u.role,
+    active: true,
+    createdAt: new Date().toISOString(),
+  };
+
+  putKV(`user:${id}`, user);
+  putKV(`auth:${id}`, hashPin(u.pin));
+
+  console.log(`  User: ${u.name} (${u.role}) PIN: ${u.pin} ID: ${id}`);
+}
+
+putKV('user:index', userIndex);
+
+// Create global shortcuts
+const shortcuts = [
+  {
+    id: randomBytes(8).toString('hex'),
+    label: 'Summarize',
+    prompt: 'Please summarize this conversation so far.',
+    global: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: randomBytes(8).toString('hex'),
+    label: 'Translate to Greek',
+    prompt: 'Translate the following text to Greek:',
+    global: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: randomBytes(8).toString('hex'),
+    label: 'Explain Simply',
+    prompt: 'Explain the following in simple terms:',
+    global: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: randomBytes(8).toString('hex'),
+    label: 'Code Review',
+    prompt: 'Review the following code and suggest improvements:',
+    global: true,
+    createdAt: new Date().toISOString(),
+  },
+];
+
+putKV('shortcuts:global', shortcuts);
+
+console.log('\nSeed complete!');
+console.log('Start dev: npm run dev (terminal 1) + npx wrangler pages dev dist (terminal 2)');
