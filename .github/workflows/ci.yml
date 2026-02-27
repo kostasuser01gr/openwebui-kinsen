@@ -50,6 +50,8 @@ jobs:
     needs: quality
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    outputs:
+      deployed: ${{ steps.deploy-status.outputs.deployed }}
     permissions:
       contents: read
       deployments: write
@@ -65,8 +67,17 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Deploy to Cloudflare Pages
+      - name: Validate Cloudflare credentials
+        id: cloudflare-auth
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          npx wrangler whoami
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy-pages
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && steps.cloudflare-auth.outcome == 'success'
         uses: cloudflare/wrangler-action@v3
         with:
           wranglerVersion: '4.69.0'
@@ -74,13 +85,22 @@ jobs:
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=kinsen-chat
 
-      - name: Skip deploy when Cloudflare secrets are missing
-        if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
-        run: echo "Skipping deploy because CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID is not configured."
+      - name: Skip deploy when Cloudflare auth is unavailable
+        if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == '' || steps.cloudflare-auth.outcome != 'success'
+        run: echo "Skipping deploy because Cloudflare auth is missing or invalid."
+
+      - name: Mark deploy status
+        id: deploy-status
+        run: |
+          if [ "${{ steps.deploy-pages.outcome }}" = "success" ]; then
+            echo "deployed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deployed=false" >> "$GITHUB_OUTPUT"
+          fi
 
   smoke-after-deploy:
     needs: deploy
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.deploy.outputs.deployed == 'true'
     runs-on: ubuntu-latest
     env:
       DEPLOY_HEALTH_URL: https://kinsen-chat.pages.dev/api/health
