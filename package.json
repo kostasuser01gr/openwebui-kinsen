@@ -26,11 +26,12 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240620.0",
     "@eslint/js": "^9.36.0",
     "@playwright/test": "^1.55.0",
-    "@cloudflare/workers-types": "^4.20240620.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsx-a11y": "^6.10.2",
@@ -42,7 +43,6 @@
     "typescript-eslint": "^8.44.1",
     "vite": "^5.3.4",
     "vitest": "^1.6.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "wrangler": "^3.62.0"
+    "wrangler": "^4.69.0"
   }
 }
