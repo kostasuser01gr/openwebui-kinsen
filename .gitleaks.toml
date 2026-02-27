@@ -1,0 +1,16 @@
+title = "gitleaks config for kinsen-chat"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Allow documented placeholder auth headers in README examples"
+paths = ['''README\.md''']
+regexes = [
+  '''Authorization:\s*Bearer\s+(your-admin-token|\$ADMIN_TOKEN|\$\{ADMIN_TOKEN\}|<ADMIN_TOKEN>)''',
+]
+fingerprints = [
+  "fb34688105be364b4ca385dbfefa0653adf6508c:README.md:curl-auth-header:231",
+  "fb34688105be364b4ca385dbfefa0653adf6508c:README.md:curl-auth-header:341",
+  "fb34688105be364b4ca385dbfefa0653adf6508c:README.md:curl-auth-header:349",
+]
