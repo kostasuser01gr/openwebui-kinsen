@@ -2,14 +2,18 @@ import type { Env, Feedback } from '../../src/lib/types';
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
-    const body = await request.json() as {
+    const body = (await request.json()) as {
       sessionId: string;
       messageIndex: number;
       rating: 'up' | 'down';
       comment?: string;
     };
 
-    if (!body.sessionId || body.messageIndex === undefined || !['up', 'down'].includes(body.rating)) {
+    if (
+      !body.sessionId ||
+      body.messageIndex === undefined ||
+      !['up', 'down'].includes(body.rating)
+    ) {
       return new Response(JSON.stringify({ error: 'Invalid feedback data' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },

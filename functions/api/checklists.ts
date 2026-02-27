@@ -30,13 +30,13 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 // POST: create or update a checklist instance
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
-    const body = await request.json() as {
+    const body = (await request.json()) as {
       templateId: string;
       rentalId: string;
       items?: Record<string, boolean>;
     };
 
-    const template = CHECKLISTS.find(c => c.id === body.templateId);
+    const template = CHECKLISTS.find((c) => c.id === body.templateId);
     if (!template) {
       return new Response(JSON.stringify({ error: 'Checklist template not found' }), {
         status: 404,
@@ -47,16 +47,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     // Get user from session
     const cookies = parseCookies(request.headers.get('Cookie'));
     const sessionToken = cookies['kinsen_session'];
-    const session = sessionToken ? await env.KV.get(`session:${sessionToken}`, 'json') as any : null;
+    const session = sessionToken
+      ? ((await env.KV.get(`session:${sessionToken}`, 'json')) as any)
+      : null;
     const userId = session?.userId || session?.email || 'anonymous';
 
     const instanceKey = `checklist:${body.templateId}:${body.rentalId}`;
-    const existing = await env.KV.get(instanceKey, 'json') as ChecklistInstance | null;
+    const existing = (await env.KV.get(instanceKey, 'json')) as ChecklistInstance | null;
 
     const items = body.items || {};
-    const allRequiredDone = template.items
-      .filter(i => i.required)
-      .every(i => items[i.id]);
+    const allRequiredDone = template.items.filter((i) => i.required).every((i) => items[i.id]);
 
     const instance: ChecklistInstance = {
       templateId: body.templateId,
@@ -71,23 +71,26 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
     const totalItems = template.items.length;
     const checkedItems = Object.values(items).filter(Boolean).length;
-    const requiredItems = template.items.filter(i => i.required).length;
-    const requiredChecked = template.items.filter(i => i.required && items[i.id]).length;
+    const requiredItems = template.items.filter((i) => i.required).length;
+    const requiredChecked = template.items.filter((i) => i.required && items[i.id]).length;
 
-    return new Response(JSON.stringify({
-      ok: true,
-      instance,
-      progress: {
-        total: totalItems,
-        checked: checkedItems,
-        requiredTotal: requiredItems,
-        requiredChecked,
-        complete: allRequiredDone,
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        instance,
+        progress: {
+          total: totalItems,
+          checked: checkedItems,
+          requiredTotal: requiredItems,
+          requiredChecked,
+          complete: allRequiredDone,
+        },
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
       },
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    );
   } catch {
     return new Response(JSON.stringify({ error: 'Bad request' }), {
       status: 400,

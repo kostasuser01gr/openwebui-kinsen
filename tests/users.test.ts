@@ -24,10 +24,18 @@ describe('RBAC permissions', () => {
 
   it('admin can access everything', () => {
     const permissions = [
-      'chat', 'macros', 'checklists', 'feedback',
-      'admin:knowledge:read', 'admin:knowledge:write',
-      'admin:analytics', 'admin:users:read', 'admin:users:write',
-      'admin:export', 'admin:audit', 'admin:seed',
+      'chat',
+      'macros',
+      'checklists',
+      'feedback',
+      'admin:knowledge:read',
+      'admin:knowledge:write',
+      'admin:analytics',
+      'admin:users:read',
+      'admin:users:write',
+      'admin:export',
+      'admin:audit',
+      'admin:seed',
     ];
     for (const perm of permissions) {
       expect(hasPermission('admin', perm)).toBe(true);

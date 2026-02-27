@@ -15,7 +15,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
 // POST: create a new user
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
-    const body = await request.json() as {
+    const body = (await request.json()) as {
       email: string;
       name: string;
       password: string;
@@ -50,7 +50,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 // PUT: update user role or active status
 export const onRequestPut: PagesFunction<Env> = async ({ request, env }) => {
   try {
-    const body = await request.json() as {
+    const body = (await request.json()) as {
       id: string;
       role?: UserRole;
       active?: boolean;

@@ -4,7 +4,7 @@ import type { Env, Webhook, WebhookEvent } from '../../src/lib/types';
 export async function dispatchWebhooks(
   env: Env,
   event: WebhookEvent,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
 ): Promise<void> {
   const indexRaw = await env.KV.get('webhook:index');
   const ids: string[] = indexRaw ? JSON.parse(indexRaw) : [];
@@ -24,7 +24,7 @@ async function deliverWebhook(
   webhook: Webhook,
   event: WebhookEvent,
   payload: Record<string, unknown>,
-  attempt = 1
+  attempt = 1,
 ): Promise<void> {
   const deliveryId = crypto.randomUUID();
   const body = JSON.stringify({
@@ -61,7 +61,7 @@ async function deliverWebhook(
     logEntry.success = res.ok;
 
     if (!res.ok && attempt < 3) {
-      await new Promise(r => setTimeout(r, attempt * attempt * 1000));
+      await new Promise((r) => setTimeout(r, attempt * attempt * 1000));
       return deliverWebhook(env, webhook, event, payload, attempt + 1);
     }
 
@@ -88,14 +88,14 @@ async function deliverWebhook(
     logEntry.error = String(err);
 
     if (attempt < 3) {
-      await new Promise(r => setTimeout(r, attempt * attempt * 1000));
+      await new Promise((r) => setTimeout(r, attempt * attempt * 1000));
       return deliverWebhook(env, webhook, event, payload, attempt + 1);
     }
   }
 
   // Save delivery log
   const logKey = `webhook:log:${webhook.id}`;
-  const existing = await env.KV.get(logKey, 'json') as unknown[] | null;
+  const existing = (await env.KV.get(logKey, 'json')) as unknown[] | null;
   const log = existing || [];
   log.unshift(logEntry);
   await env.KV.put(logKey, JSON.stringify(log.slice(0, 100)), {
@@ -110,10 +110,10 @@ async function signPayload(payload: string, secret: string): Promise<string> {
     encoder.encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ['sign']
+    ['sign'],
   );
   const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload));
   return Array.from(new Uint8Array(sig))
-    .map(b => b.toString(16).padStart(2, '0'))
+    .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }

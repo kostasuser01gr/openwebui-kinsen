@@ -5,16 +5,16 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   const backup: Record<string, any> = { exportedAt: new Date().toISOString(), data: {} };
 
   // Export knowledge notes
-  const noteIndex = await env.KV.get('knowledge:index', 'json') as string[] | null;
+  const noteIndex = (await env.KV.get('knowledge:index', 'json')) as string[] | null;
   if (noteIndex) {
-    const notes = await Promise.all(noteIndex.map(id => env.KV.get(`knowledge:${id}`, 'json')));
+    const notes = await Promise.all(noteIndex.map((id) => env.KV.get(`knowledge:${id}`, 'json')));
     backup.data.knowledge = { index: noteIndex, notes: notes.filter(Boolean) };
   }
 
   // Export users (without password hashes)
-  const userIndex = await env.KV.get('user:index', 'json') as string[] | null;
+  const userIndex = (await env.KV.get('user:index', 'json')) as string[] | null;
   if (userIndex) {
-    const users = await Promise.all(userIndex.map(id => env.KV.get(`user:${id}`, 'json')));
+    const users = await Promise.all(userIndex.map((id) => env.KV.get(`user:${id}`, 'json')));
     backup.data.users = users.filter(Boolean).map((u: any) => {
       const { passwordHash, ...safe } = u;
       return safe;

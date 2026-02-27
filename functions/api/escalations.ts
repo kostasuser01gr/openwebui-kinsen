@@ -9,10 +9,14 @@ interface EscalationRequest {
 }
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const body = await ctx.request.json() as EscalationRequest;
-  const user = (ctx.data as Record<string, unknown>).user as { userId: string; name: string; role: string } | undefined;
+  const body = (await ctx.request.json()) as EscalationRequest;
+  const user = (ctx.data as Record<string, unknown>).user as
+    | { userId: string; name: string; role: string }
+    | undefined;
   if (!body.sessionId || !body.reason) {
-    return new Response(JSON.stringify({ error: 'sessionId and reason required' }), { status: 400 });
+    return new Response(JSON.stringify({ error: 'sessionId and reason required' }), {
+      status: 400,
+    });
   }
 
   const id = `ESC-${Date.now().toString(36).toUpperCase()}`;
@@ -29,7 +33,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     updatedAt: new Date().toISOString(),
   };
 
-  await ctx.env.KV.put(`escalation:${id}`, JSON.stringify(escalation), { expirationTtl: 30 * 86400 });
+  await ctx.env.KV.put(`escalation:${id}`, JSON.stringify(escalation), {
+    expirationTtl: 30 * 86400,
+  });
 
   // Add to index
   const indexRaw = await ctx.env.KV.get('escalation:index');
@@ -49,7 +55,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     read: false,
     createdAt: new Date().toISOString(),
   };
-  await ctx.env.KV.put(`notification:${notif.id}`, JSON.stringify(notif), { expirationTtl: 7 * 86400 });
+  await ctx.env.KV.put(`notification:${notif.id}`, JSON.stringify(notif), {
+    expirationTtl: 7 * 86400,
+  });
   const notifIndex = await ctx.env.KV.get('notification:index:__supervisors__');
   const nIdx: string[] = notifIndex ? JSON.parse(notifIndex) : [];
   nIdx.unshift(notif.id);
@@ -78,8 +86,15 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 };
 
 export const onRequestPut: PagesFunction<Env> = async (ctx) => {
-  const body = await ctx.request.json() as { id: string; status?: string; assignedTo?: string; resolution?: string };
-  const user = (ctx.data as Record<string, unknown>).user as { userId: string; name: string } | undefined;
+  const body = (await ctx.request.json()) as {
+    id: string;
+    status?: string;
+    assignedTo?: string;
+    resolution?: string;
+  };
+  const user = (ctx.data as Record<string, unknown>).user as
+    | { userId: string; name: string }
+    | undefined;
   if (!body.id) return new Response(JSON.stringify({ error: 'id required' }), { status: 400 });
 
   const raw = await ctx.env.KV.get(`escalation:${body.id}`);
@@ -88,7 +103,10 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
   const esc = JSON.parse(raw) as Escalation;
   if (body.status) esc.status = body.status as Escalation['status'];
   if (body.assignedTo) esc.assignedTo = body.assignedTo;
-  if (body.resolution) { esc.resolution = body.resolution; esc.resolvedAt = new Date().toISOString(); }
+  if (body.resolution) {
+    esc.resolution = body.resolution;
+    esc.resolvedAt = new Date().toISOString();
+  }
   esc.updatedAt = new Date().toISOString();
   if (!esc.assignedTo && user) esc.assignedTo = user.userId;
 

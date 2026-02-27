@@ -15,14 +15,18 @@ export default function EscalationPanel({ onClose, sessionId, lastMessage }: Esc
   const [filter, setFilter] = useState('open');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadEscalations(); }, [filter]);
+  useEffect(() => {
+    loadEscalations();
+  }, [filter]);
 
   const loadEscalations = async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/escalations?status=${filter}`, { credentials: 'include' });
-      if (res.ok) setEscalations(await res.json() as Escalation[]);
-    } catch { /* ignore */ }
+      if (res.ok) setEscalations((await res.json()) as Escalation[]);
+    } catch {
+      /* ignore */
+    }
     setLoading(false);
   };
 
@@ -32,7 +36,12 @@ export default function EscalationPanel({ onClose, sessionId, lastMessage }: Esc
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: sessionId || 'manual', reason, priority, lastMessage: lastMessage || '' }),
+      body: JSON.stringify({
+        sessionId: sessionId || 'manual',
+        reason,
+        priority,
+        lastMessage: lastMessage || '',
+      }),
     });
     setShowForm(false);
     setReason('');
@@ -50,28 +59,41 @@ export default function EscalationPanel({ onClose, sessionId, lastMessage }: Esc
   };
 
   const priorityColors: Record<string, string> = {
-    low: '#6b7280', medium: '#f59e0b', high: '#f97316', urgent: '#ef4444',
+    low: '#6b7280',
+    medium: '#f59e0b',
+    high: '#f97316',
+    urgent: '#ef4444',
   };
 
   const statusIcons: Record<string, string> = {
-    open: '🔴', claimed: '🟡', resolved: '🟢',
+    open: '🔴',
+    claimed: '🟡',
+    resolved: '🟢',
   };
 
   return (
     <div className="side-panel escalation-panel">
       <div className="side-panel-header">
         <h3>🔴 Escalations</h3>
-        <button className="btn-small" onClick={onClose}>✕</button>
+        <button className="btn-small" onClick={onClose}>
+          ✕
+        </button>
       </div>
 
       {/* Filter tabs */}
       <div className="escalation-filters">
-        {['open', 'claimed', 'resolved'].map(s => (
-          <button key={s} className={`btn-small ${filter === s ? 'active' : ''}`} onClick={() => setFilter(s)}>
+        {['open', 'claimed', 'resolved'].map((s) => (
+          <button
+            key={s}
+            className={`btn-small ${filter === s ? 'active' : ''}`}
+            onClick={() => setFilter(s)}
+          >
             {statusIcons[s]} {s.charAt(0).toUpperCase() + s.slice(1)}
           </button>
         ))}
-        <button className="btn-primary btn-small" onClick={() => setShowForm(true)}>+ New</button>
+        <button className="btn-primary btn-small" onClick={() => setShowForm(true)}>
+          + New
+        </button>
       </div>
 
       {/* Create form */}
@@ -79,12 +101,19 @@ export default function EscalationPanel({ onClose, sessionId, lastMessage }: Esc
         <div className="escalation-form">
           <h4>Create Escalation</h4>
           <div className="workflow-field">
-            <label>Reason <span className="required">*</span></label>
-            <textarea value={reason} onChange={e => setReason(e.target.value)} rows={2} placeholder="Describe the issue..." />
+            <label>
+              Reason <span className="required">*</span>
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={2}
+              placeholder="Describe the issue..."
+            />
           </div>
           <div className="workflow-field">
             <label>Priority</label>
-            <select value={priority} onChange={e => setPriority(e.target.value)}>
+            <select value={priority} onChange={(e) => setPriority(e.target.value)}>
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
@@ -92,8 +121,12 @@ export default function EscalationPanel({ onClose, sessionId, lastMessage }: Esc
             </select>
           </div>
           <div className="escalation-form-actions">
-            <button className="btn-primary" onClick={createEscalation}>Submit Escalation</button>
-            <button className="btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+            <button className="btn-primary" onClick={createEscalation}>
+              Submit Escalation
+            </button>
+            <button className="btn-secondary" onClick={() => setShowForm(false)}>
+              Cancel
+            </button>
           </div>
         </div>
       )}
@@ -104,7 +137,7 @@ export default function EscalationPanel({ onClose, sessionId, lastMessage }: Esc
         {!loading && escalations.length === 0 && (
           <div className="escalation-empty">No {filter} escalations</div>
         )}
-        {escalations.map(esc => (
+        {escalations.map((esc) => (
           <div key={esc.id} className="escalation-card">
             <div className="escalation-card-header">
               <span className="escalation-id">{esc.id}</span>
@@ -123,20 +156,25 @@ export default function EscalationPanel({ onClose, sessionId, lastMessage }: Esc
             )}
             {esc.status === 'open' && (
               <div className="escalation-actions">
-                <button className="btn-small" onClick={() => updateEscalation(esc.id, 'claimed')}>Claim</button>
+                <button className="btn-small" onClick={() => updateEscalation(esc.id, 'claimed')}>
+                  Claim
+                </button>
               </div>
             )}
             {esc.status === 'claimed' && (
               <div className="escalation-actions">
-                <button className="btn-primary btn-small" onClick={() => {
-                  const res = prompt('Resolution note:');
-                  if (res) updateEscalation(esc.id, 'resolved', res);
-                }}>Resolve</button>
+                <button
+                  className="btn-primary btn-small"
+                  onClick={() => {
+                    const res = prompt('Resolution note:');
+                    if (res) updateEscalation(esc.id, 'resolved', res);
+                  }}
+                >
+                  Resolve
+                </button>
               </div>
             )}
-            {esc.resolution && (
-              <div className="escalation-resolution">✅ {esc.resolution}</div>
-            )}
+            {esc.resolution && <div className="escalation-resolution">✅ {esc.resolution}</div>}
           </div>
         ))}
       </div>

@@ -30,7 +30,16 @@ interface Props {
 
 const REACTION_EMOJIS = ['✅', '🔥', '⚠️', '📌'];
 
-export function MessageBubble({ message, messageIndex, onFeedback, onFollowupClick, onCitationClick, onTogglePin, onReaction, onBookmark }: Props) {
+export function MessageBubble({
+  message,
+  messageIndex,
+  onFeedback,
+  onFollowupClick,
+  onCitationClick,
+  onTogglePin,
+  onReaction,
+  onBookmark,
+}: Props) {
   const isUser = message.role === 'user';
   const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null);
 
@@ -64,7 +73,7 @@ export function MessageBubble({ message, messageIndex, onFeedback, onFollowupCli
                 ))}
               </tbody>
             </table>
-          </div>
+          </div>,
         );
         tableRows = [];
       }
@@ -91,11 +100,19 @@ export function MessageBubble({ message, messageIndex, onFeedback, onFollowupCli
 
       // Headers
       if (line.startsWith('## ')) {
-        elements.push(<h3 key={i} className="md-h3">{line.slice(3)}</h3>);
+        elements.push(
+          <h3 key={i} className="md-h3">
+            {line.slice(3)}
+          </h3>,
+        );
         continue;
       }
       if (line.startsWith('# ')) {
-        elements.push(<h2 key={i} className="md-h2">{line.slice(2)}</h2>);
+        elements.push(
+          <h2 key={i} className="md-h2">
+            {line.slice(2)}
+          </h2>,
+        );
         continue;
       }
 
@@ -110,7 +127,7 @@ export function MessageBubble({ message, messageIndex, onFeedback, onFollowupCli
         elements.push(
           <div key={i} className="md-list-item">
             {formatInline(line.replace(/^[\s]*[-•☑]\s/, ''))}
-          </div>
+          </div>,
         );
         continue;
       }
@@ -120,7 +137,7 @@ export function MessageBubble({ message, messageIndex, onFeedback, onFollowupCli
         elements.push(
           <div key={i} className="md-list-item md-numbered">
             {formatInline(line)}
-          </div>
+          </div>,
         );
         continue;
       }
@@ -132,7 +149,11 @@ export function MessageBubble({ message, messageIndex, onFeedback, onFollowupCli
       }
 
       // Regular paragraph
-      elements.push(<p key={i} className="md-p">{formatInline(line)}</p>);
+      elements.push(
+        <p key={i} className="md-p">
+          {formatInline(line)}
+        </p>,
+      );
     }
 
     if (inTable) flushTable();
@@ -158,7 +179,9 @@ export function MessageBubble({ message, messageIndex, onFeedback, onFollowupCli
   };
 
   return (
-    <div className={`message ${message.role} ${message.pinned ? 'pinned' : ''} ${message.bookmarked ? 'bookmarked' : ''}`}>
+    <div
+      className={`message ${message.role} ${message.pinned ? 'pinned' : ''} ${message.bookmarked ? 'bookmarked' : ''}`}
+    >
       <div className="message-bubble">
         {isUser ? (
           <p>{message.content}</p>
@@ -169,7 +192,7 @@ export function MessageBubble({ message, messageIndex, onFeedback, onFollowupCli
       {!isUser && message.citations && message.citations.length > 0 && (
         <div className="citations">
           <span className="citation-label">Sources:</span>
-          {message.citations.map(c => (
+          {message.citations.map((c) => (
             <button
               key={c.id}
               className="citation-tag citation-clickable"
@@ -188,7 +211,10 @@ export function MessageBubble({ message, messageIndex, onFeedback, onFollowupCli
             <div className="feedback-row">
               <button
                 className={`feedback-btn ${feedbackGiven === 'up' ? 'active' : ''}`}
-                onClick={() => { setFeedbackGiven('up'); onFeedback(messageIndex, 'up'); }}
+                onClick={() => {
+                  setFeedbackGiven('up');
+                  onFeedback(messageIndex, 'up');
+                }}
                 disabled={feedbackGiven !== null}
                 title="Helpful"
               >
@@ -196,7 +222,10 @@ export function MessageBubble({ message, messageIndex, onFeedback, onFollowupCli
               </button>
               <button
                 className={`feedback-btn ${feedbackGiven === 'down' ? 'active' : ''}`}
-                onClick={() => { setFeedbackGiven('down'); onFeedback(messageIndex, 'down'); }}
+                onClick={() => {
+                  setFeedbackGiven('down');
+                  onFeedback(messageIndex, 'down');
+                }}
                 disabled={feedbackGiven !== null}
                 title="Not helpful"
               >
@@ -207,7 +236,7 @@ export function MessageBubble({ message, messageIndex, onFeedback, onFollowupCli
           )}
           {onReaction && (
             <div className="reaction-row">
-              {REACTION_EMOJIS.map(emoji => (
+              {REACTION_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
                   className={`reaction-btn ${message.reactions?.includes(emoji) ? 'active' : ''}`}
@@ -219,27 +248,38 @@ export function MessageBubble({ message, messageIndex, onFeedback, onFollowupCli
             </div>
           )}
           {onTogglePin && (
-            <button className={`icon-btn pin-btn ${message.pinned ? 'active' : ''}`} onClick={onTogglePin} title={message.pinned ? 'Unpin' : 'Pin'}>
+            <button
+              className={`icon-btn pin-btn ${message.pinned ? 'active' : ''}`}
+              onClick={onTogglePin}
+              title={message.pinned ? 'Unpin' : 'Pin'}
+            >
               📌
             </button>
           )}
           {onBookmark && (
-            <button className={`icon-btn bookmark-btn ${message.bookmarked ? 'active' : ''}`} onClick={onBookmark} title={message.bookmarked ? 'Remove bookmark' : 'Bookmark'}>
+            <button
+              className={`icon-btn bookmark-btn ${message.bookmarked ? 'active' : ''}`}
+              onClick={onBookmark}
+              title={message.bookmarked ? 'Remove bookmark' : 'Bookmark'}
+            >
               {message.bookmarked ? '🔖' : '🏷️'}
             </button>
           )}
         </div>
       )}
       {/* Suggested follow-ups */}
-      {!isUser && message.suggestedFollowups && message.suggestedFollowups.length > 0 && onFollowupClick && (
-        <div className="followup-chips">
-          {message.suggestedFollowups.map((q, i) => (
-            <button key={i} className="followup-chip" onClick={() => onFollowupClick(q)}>
-              {q}
-            </button>
-          ))}
-        </div>
-      )}
+      {!isUser &&
+        message.suggestedFollowups &&
+        message.suggestedFollowups.length > 0 &&
+        onFollowupClick && (
+          <div className="followup-chips">
+            {message.suggestedFollowups.map((q, i) => (
+              <button key={i} className="followup-chip" onClick={() => onFollowupClick(q)}>
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
     </div>
   );
 }

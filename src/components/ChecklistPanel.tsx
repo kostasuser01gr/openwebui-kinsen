@@ -28,13 +28,13 @@ export function ChecklistPanel({ onClose }: Props) {
 
   useEffect(() => {
     fetch('/api/checklists', { credentials: 'include' })
-      .then(r => r.json() as Promise<ChecklistTemplate[]>)
-      .then(data => setTemplates(data))
+      .then((r) => r.json() as Promise<ChecklistTemplate[]>)
+      .then((data) => setTemplates(data))
       .catch(() => {});
   }, []);
 
   const toggleItem = (itemId: string) => {
-    setChecks(prev => ({ ...prev, [itemId]: !prev[itemId] }));
+    setChecks((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
     setSaved(false);
   };
 
@@ -53,13 +53,15 @@ export function ChecklistPanel({ onClose }: Props) {
         }),
       });
       setSaved(true);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     setSaving(false);
   };
 
   if (selected) {
-    const requiredItems = selected.items.filter(i => i.required);
-    const requiredDone = requiredItems.filter(i => checks[i.id]).length;
+    const requiredItems = selected.items.filter((i) => i.required);
+    const requiredDone = requiredItems.filter((i) => checks[i.id]).length;
     const totalChecked = Object.values(checks).filter(Boolean).length;
     const progress = Math.round((totalChecked / selected.items.length) * 100);
     const allRequiredDone = requiredDone === requiredItems.length;
@@ -67,9 +69,20 @@ export function ChecklistPanel({ onClose }: Props) {
     return (
       <div className="panel-content">
         <div className="panel-header">
-          <button className="icon-btn" onClick={() => { setSelected(null); setChecks({}); setRentalId(''); }}>←</button>
+          <button
+            className="icon-btn"
+            onClick={() => {
+              setSelected(null);
+              setChecks({});
+              setRentalId('');
+            }}
+          >
+            ←
+          </button>
           <h3>{selected.title}</h3>
-          <button className="icon-btn" onClick={onClose}>✕</button>
+          <button className="icon-btn" onClick={onClose}>
+            ✕
+          </button>
         </div>
         <p className="panel-desc">{selected.description}</p>
 
@@ -78,7 +91,7 @@ export function ChecklistPanel({ onClose }: Props) {
           <input
             type="text"
             value={rentalId}
-            onChange={e => setRentalId(e.target.value)}
+            onChange={(e) => setRentalId(e.target.value)}
             placeholder="e.g., RNT-2025-1234"
           />
         </div>
@@ -87,11 +100,14 @@ export function ChecklistPanel({ onClose }: Props) {
           <div className="progress-bar">
             <div className="progress-fill" style={{ width: `${progress}%` }} />
           </div>
-          <span>{totalChecked}/{selected.items.length} items · {requiredDone}/{requiredItems.length} required</span>
+          <span>
+            {totalChecked}/{selected.items.length} items · {requiredDone}/{requiredItems.length}{' '}
+            required
+          </span>
         </div>
 
         <div className="checklist-items">
-          {selected.items.map(item => (
+          {selected.items.map((item) => (
             <label key={item.id} className={`checklist-item ${checks[item.id] ? 'checked' : ''}`}>
               <input
                 type="checkbox"
@@ -110,11 +126,7 @@ export function ChecklistPanel({ onClose }: Props) {
         </div>
 
         <div className="checklist-actions">
-          <button
-            className="btn-primary"
-            onClick={saveChecklist}
-            disabled={saving || !rentalId}
-          >
+          <button className="btn-primary" onClick={saveChecklist} disabled={saving || !rentalId}>
             {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Checklist'}
           </button>
           {allRequiredDone && rentalId && (
@@ -129,13 +141,17 @@ export function ChecklistPanel({ onClose }: Props) {
     <div className="panel-content">
       <div className="panel-header">
         <h3>✅ Operational Checklists</h3>
-        <button className="icon-btn" onClick={onClose}>✕</button>
+        <button className="icon-btn" onClick={onClose}>
+          ✕
+        </button>
       </div>
       <div className="checklist-templates">
-        {templates.map(t => (
+        {templates.map((t) => (
           <button key={t.id} className="macro-item" onClick={() => setSelected(t)}>
             <span className="macro-item-title">{t.title}</span>
-            <span className="macro-item-desc">{t.description} · {t.items.length} items</span>
+            <span className="macro-item-desc">
+              {t.description} · {t.items.length} items
+            </span>
           </button>
         ))}
       </div>

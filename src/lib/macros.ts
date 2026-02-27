@@ -13,7 +13,8 @@ export const MACROS: MacroTemplate[] = [
       { name: 'hours_late', label: 'Hours Late', type: 'number', required: true },
       { name: 'daily_rate', label: 'Daily Rate (€)', type: 'number', required: true },
     ],
-    template: '**Late Return Fee Calculation**\nHours late: {{hours_late}}h\nDaily rate: €{{daily_rate}}\n\n{{result}}',
+    template:
+      '**Late Return Fee Calculation**\nHours late: {{hours_late}}h\nDaily rate: €{{daily_rate}}\n\n{{result}}',
     formula: `
       const hours = Number(vars.hours_late);
       const rate = Number(vars.daily_rate);
@@ -32,7 +33,13 @@ export const MACROS: MacroTemplate[] = [
     description: 'Calculate the refueling charge for a vehicle not returned full.',
     slots: [
       { name: 'missing_litres', label: 'Missing Litres', type: 'number', required: true },
-      { name: 'is_electric', label: 'Electric Vehicle?', type: 'select', options: ['No', 'Yes'], required: true },
+      {
+        name: 'is_electric',
+        label: 'Electric Vehicle?',
+        type: 'select',
+        options: ['No', 'Yes'],
+        required: true,
+      },
       { name: 'missing_kwh', label: 'Missing kWh (EV only)', type: 'number', required: false },
     ],
     template: '**Fuel/Charge Calculation**\n\n{{result}}',
@@ -55,9 +62,16 @@ export const MACROS: MacroTemplate[] = [
     slots: [
       { name: 'km_driven', label: 'Total KM Driven', type: 'number', required: true },
       { name: 'km_included', label: 'KM Included in Rental', type: 'number', required: true },
-      { name: 'vehicle_class', label: 'Vehicle Class', type: 'select', options: ['Economy', 'Compact', 'Midsize', 'SUV', 'Premium', 'Luxury'], required: true },
+      {
+        name: 'vehicle_class',
+        label: 'Vehicle Class',
+        type: 'select',
+        options: ['Economy', 'Compact', 'Midsize', 'SUV', 'Premium', 'Luxury'],
+        required: true,
+      },
     ],
-    template: '**Mileage Overage Calculation**\nDriven: {{km_driven}} km | Included: {{km_included}} km\nVehicle class: {{vehicle_class}}\n\n{{result}}',
+    template:
+      '**Mileage Overage Calculation**\nDriven: {{km_driven}} km | Included: {{km_included}} km\nVehicle class: {{vehicle_class}}\n\n{{result}}',
     formula: `
       const driven = Number(vars.km_driven);
       const included = Number(vars.km_included);
@@ -75,7 +89,13 @@ export const MACROS: MacroTemplate[] = [
     category: 'calculator',
     description: 'Look up the required deposit based on vehicle class.',
     slots: [
-      { name: 'vehicle_class', label: 'Vehicle Class', type: 'select', options: ['Economy', 'Compact', 'Midsize', 'SUV', 'Premium', 'Luxury'], required: true },
+      {
+        name: 'vehicle_class',
+        label: 'Vehicle Class',
+        type: 'select',
+        options: ['Economy', 'Compact', 'Midsize', 'SUV', 'Premium', 'Luxury'],
+        required: true,
+      },
     ],
     template: '**Deposit Requirement**\nVehicle class: {{vehicle_class}}\n\n{{result}}',
     formula: `
@@ -92,10 +112,22 @@ export const MACROS: MacroTemplate[] = [
     slots: [
       { name: 'hours_before', label: 'Hours Before Pickup', type: 'number', required: true },
       { name: 'daily_rate', label: 'First Day Rate (€)', type: 'number', required: true },
-      { name: 'booking_type', label: 'Booking Type', type: 'select', options: ['Pay at Counter', 'Prepaid'], required: true },
-      { name: 'total_prepaid', label: 'Total Prepaid (€, if prepaid)', type: 'number', required: false },
+      {
+        name: 'booking_type',
+        label: 'Booking Type',
+        type: 'select',
+        options: ['Pay at Counter', 'Prepaid'],
+        required: true,
+      },
+      {
+        name: 'total_prepaid',
+        label: 'Total Prepaid (€, if prepaid)',
+        type: 'number',
+        required: false,
+      },
     ],
-    template: '**Cancellation Fee**\nNotice: {{hours_before}}h before pickup | Booking: {{booking_type}}\n\n{{result}}',
+    template:
+      '**Cancellation Fee**\nNotice: {{hours_before}}h before pickup | Booking: {{booking_type}}\n\n{{result}}',
     formula: `
       const hours = Number(vars.hours_before);
       const daily = Number(vars.daily_rate);
@@ -151,7 +183,18 @@ Best regards,
       { name: 'rental_id', label: 'Rental ID', type: 'text', required: true },
       { name: 'damage_description', label: 'Damage Description', type: 'text', required: true },
       { name: 'estimated_cost', label: 'Estimated Cost (€)', type: 'number', required: true },
-      { name: 'insurance_package', label: 'Insurance Package', type: 'select', options: ['Basic (€1,200 deductible)', 'Plus (€400 deductible)', 'Full Protection (€0)', 'Premium+ (€0)'], required: true },
+      {
+        name: 'insurance_package',
+        label: 'Insurance Package',
+        type: 'select',
+        options: [
+          'Basic (€1,200 deductible)',
+          'Plus (€400 deductible)',
+          'Full Protection (€0)',
+          'Premium+ (€0)',
+        ],
+        required: true,
+      },
     ],
     template: `Subject: Kinsen Rentals — Damage Report (Rental #{{rental_id}})
 
@@ -179,7 +222,13 @@ Kinsen Rentals Damage Team`,
     description: 'Script for upselling insurance packages at the pickup counter.',
     slots: [
       { name: 'customer_name', label: 'Customer Name', type: 'text', required: true },
-      { name: 'current_package', label: 'Current Package', type: 'select', options: ['Basic', 'Plus'], required: true },
+      {
+        name: 'current_package',
+        label: 'Current Package',
+        type: 'select',
+        options: ['Basic', 'Plus'],
+        required: true,
+      },
       { name: 'rental_days', label: 'Rental Days', type: 'number', required: true },
     ],
     template: `**Upsell Script for {{customer_name}}**
@@ -209,10 +258,7 @@ Current package: {{current_package}} | Rental: {{rental_days}} days
 /**
  * Execute a macro formula with the given variables.
  */
-export function executeMacro(
-  macro: MacroTemplate,
-  variables: Record<string, string>
-): string {
+export function executeMacro(macro: MacroTemplate, variables: Record<string, string>): string {
   let output = macro.template;
 
   // Replace slot placeholders

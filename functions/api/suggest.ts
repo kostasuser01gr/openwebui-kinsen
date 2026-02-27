@@ -11,10 +11,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   // Load knowledge notes for title matching
-  const noteIndex = await env.KV.get('knowledge:index', 'json') as string[] | null;
+  const noteIndex = (await env.KV.get('knowledge:index', 'json')) as string[] | null;
   const notes: KnowledgeNote[] = [];
   if (noteIndex) {
-    const results = await Promise.all(noteIndex.map(id => env.KV.get(`knowledge:${id}`, 'json')));
+    const results = await Promise.all(noteIndex.map((id) => env.KV.get(`knowledge:${id}`, 'json')));
     for (const n of results) {
       if (n) notes.push(n as KnowledgeNote);
     }
@@ -24,7 +24,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const user = ((request as any).__userData || {}) as { userId?: string };
   let recentSearches: string[] = [];
   if (user.userId) {
-    const prefs = await env.KV.get(`preferences:${user.userId}`, 'json') as any;
+    const prefs = (await env.KV.get(`preferences:${user.userId}`, 'json')) as any;
     if (prefs?.recentSearches) recentSearches = prefs.recentSearches;
   }
 

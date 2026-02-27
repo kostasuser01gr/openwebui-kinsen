@@ -18,16 +18,76 @@ interface PaletteItem {
 
 const STATIC_ACTIONS: PaletteItem[] = [
   { id: 'new-chat', label: 'New Conversation', category: 'Chat', icon: '💬', action: 'new-chat' },
-  { id: 'export-chat', label: 'Export Chat as Markdown', category: 'Chat', icon: '📥', action: 'export-chat' },
-  { id: 'toggle-dark', label: 'Toggle Dark Mode', category: 'Settings', icon: '🌙', action: 'toggle-dark' },
-  { id: 'open-macros', label: 'Open Macros Panel', category: 'Tools', icon: '🧮', action: 'open-macros' },
-  { id: 'open-checklists', label: 'Open Checklists Panel', category: 'Tools', icon: '✅', action: 'open-checklists' },
-  { id: 'open-workflows', label: 'Start Workflow', category: 'Tools', icon: '📋', action: 'open-workflows' },
-  { id: 'open-vehicles', label: 'Vehicle Status Board', category: 'Fleet', icon: '🚗', action: 'open-vehicles' },
-  { id: 'open-customers', label: 'Customer Lookup', category: 'Operations', icon: '👤', action: 'open-customers' },
-  { id: 'open-email', label: 'Email Generator', category: 'Tools', icon: '✉️', action: 'open-email' },
-  { id: 'open-admin', label: 'Admin Dashboard', category: 'Admin', icon: '⚙️', action: 'open-admin' },
-  { id: 'open-preferences', label: 'Preferences', category: 'Settings', icon: '🔧', action: 'open-preferences' },
+  {
+    id: 'export-chat',
+    label: 'Export Chat as Markdown',
+    category: 'Chat',
+    icon: '📥',
+    action: 'export-chat',
+  },
+  {
+    id: 'toggle-dark',
+    label: 'Toggle Dark Mode',
+    category: 'Settings',
+    icon: '🌙',
+    action: 'toggle-dark',
+  },
+  {
+    id: 'open-macros',
+    label: 'Open Macros Panel',
+    category: 'Tools',
+    icon: '🧮',
+    action: 'open-macros',
+  },
+  {
+    id: 'open-checklists',
+    label: 'Open Checklists Panel',
+    category: 'Tools',
+    icon: '✅',
+    action: 'open-checklists',
+  },
+  {
+    id: 'open-workflows',
+    label: 'Start Workflow',
+    category: 'Tools',
+    icon: '📋',
+    action: 'open-workflows',
+  },
+  {
+    id: 'open-vehicles',
+    label: 'Vehicle Status Board',
+    category: 'Fleet',
+    icon: '🚗',
+    action: 'open-vehicles',
+  },
+  {
+    id: 'open-customers',
+    label: 'Customer Lookup',
+    category: 'Operations',
+    icon: '👤',
+    action: 'open-customers',
+  },
+  {
+    id: 'open-email',
+    label: 'Email Generator',
+    category: 'Tools',
+    icon: '✉️',
+    action: 'open-email',
+  },
+  {
+    id: 'open-admin',
+    label: 'Admin Dashboard',
+    category: 'Admin',
+    icon: '⚙️',
+    action: 'open-admin',
+  },
+  {
+    id: 'open-preferences',
+    label: 'Preferences',
+    category: 'Settings',
+    icon: '🔧',
+    action: 'open-preferences',
+  },
 ];
 
 export default function CommandPalette({ onClose, onAction, preferences }: CommandPaletteProps) {
@@ -64,7 +124,7 @@ export default function CommandPalette({ onClose, onAction, preferences }: Comma
       for (const macroId of preferences.pinnedMacros) {
         items.push({
           id: `macro-${macroId}`,
-          label: macroId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          label: macroId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
           category: 'Pinned Macros',
           icon: '📌',
           action: 'run-macro',
@@ -77,7 +137,7 @@ export default function CommandPalette({ onClose, onAction, preferences }: Comma
     try {
       const res = await fetch('/api/admin/knowledge', { credentials: 'include' });
       if (res.ok) {
-        const notes = await res.json() as { id: string; title: string; category: string }[];
+        const notes = (await res.json()) as { id: string; title: string; category: string }[];
         for (const note of notes) {
           items.push({
             id: `note-${note.id}`,
@@ -89,37 +149,48 @@ export default function CommandPalette({ onClose, onAction, preferences }: Comma
           });
         }
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     setDynamicItems(items);
   };
 
   const allItems = [...STATIC_ACTIONS, ...dynamicItems];
   const filtered = query
-    ? allItems.filter(item =>
-        item.label.toLowerCase().includes(query.toLowerCase()) ||
-        item.category.toLowerCase().includes(query.toLowerCase())
+    ? allItems.filter(
+        (item) =>
+          item.label.toLowerCase().includes(query.toLowerCase()) ||
+          item.category.toLowerCase().includes(query.toLowerCase()),
       )
     : allItems;
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') { onClose(); return; }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex(i => Math.min(i + 1, filtered.length - 1));
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex(i => Math.max(i - 1, 0));
-    }
-    if (e.key === 'Enter' && filtered[selectedIndex]) {
-      const item = filtered[selectedIndex];
-      onAction(item.action, item.payload);
-      onClose();
-    }
-  }, [filtered, selectedIndex, onAction, onClose]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1));
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex((i) => Math.max(i - 1, 0));
+      }
+      if (e.key === 'Enter' && filtered[selectedIndex]) {
+        const item = filtered[selectedIndex];
+        onAction(item.action, item.payload);
+        onClose();
+      }
+    },
+    [filtered, selectedIndex, onAction, onClose],
+  );
 
-  useEffect(() => { setSelectedIndex(0); }, [query]);
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query]);
 
   // Group by category
   const grouped: Record<string, PaletteItem[]> = {};
@@ -130,14 +201,18 @@ export default function CommandPalette({ onClose, onAction, preferences }: Comma
 
   return (
     <div className="command-palette-overlay" onClick={onClose}>
-      <div className="command-palette" onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
+      <div
+        className="command-palette"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
+      >
         <div className="command-palette-input-wrapper">
           <span className="command-palette-icon">⌘</span>
           <input
             ref={inputRef}
             type="text"
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder="Search commands, notes, macros..."
             className="command-palette-input"
           />
@@ -147,13 +222,16 @@ export default function CommandPalette({ onClose, onAction, preferences }: Comma
           {Object.entries(grouped).map(([category, items]) => (
             <div key={category} className="command-palette-group">
               <div className="command-palette-group-label">{category}</div>
-              {items.map(item => {
+              {items.map((item) => {
                 const globalIdx = filtered.indexOf(item);
                 return (
                   <button
                     key={item.id}
                     className={`command-palette-item ${globalIdx === selectedIndex ? 'selected' : ''}`}
-                    onClick={() => { onAction(item.action, item.payload); onClose(); }}
+                    onClick={() => {
+                      onAction(item.action, item.payload);
+                      onClose();
+                    }}
                     onMouseEnter={() => setSelectedIndex(globalIdx)}
                   >
                     <span className="command-palette-item-icon">{item.icon}</span>

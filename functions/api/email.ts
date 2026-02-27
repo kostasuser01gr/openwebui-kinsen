@@ -139,7 +139,7 @@ Kind regards,
 {{agentName}}
 Kinsen Car Rental`,
   },
-  'custom': {
+  custom: {
     subject: '{{subject}}',
     body: '{{body}}',
   },
@@ -167,11 +167,13 @@ export const onRequestGet: PagesFunction<Env> = async () => {
 };
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const body = await ctx.request.json() as EmailRequest;
+  const body = (await ctx.request.json()) as EmailRequest;
 
   const tmpl = EMAIL_TEMPLATES[body.template];
   if (!tmpl) {
-    return new Response(JSON.stringify({ error: `Unknown template: ${body.template}` }), { status: 400 });
+    return new Response(JSON.stringify({ error: `Unknown template: ${body.template}` }), {
+      status: 400,
+    });
   }
 
   const email: GeneratedEmail = {

@@ -14,7 +14,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       notes = parseMarkdown(text);
     } else {
       // Default: JSON array
-      const body = await request.json() as { notes: Partial<KnowledgeNote>[] };
+      const body = (await request.json()) as { notes: Partial<KnowledgeNote>[] };
       notes = body.notes || [];
     }
   } catch (err) {
@@ -30,7 +30,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   // Get existing index
-  const indexRaw = await env.KV.get('knowledge:index', 'json') as string[] | null;
+  const indexRaw = (await env.KV.get('knowledge:index', 'json')) as string[] | null;
   const index = indexRaw || [];
   const imported: string[] = [];
   const errors: string[] = [];
@@ -41,7 +41,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       continue;
     }
 
-    const id = note.id || `note-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    const id =
+      note.id || `note-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
     const full: KnowledgeNote = {
       id,
       title: note.title,
@@ -58,18 +59,23 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   await env.KV.put('knowledge:index', JSON.stringify(index));
 
-  return Response.json({
-    imported: imported.length,
-    errors: errors.length > 0 ? errors : undefined,
-    ids: imported,
-  }, { status: 201 });
+  return Response.json(
+    {
+      imported: imported.length,
+      errors: errors.length > 0 ? errors : undefined,
+      ids: imported,
+    },
+    { status: 201 },
+  );
 };
 
 function parseCSV(text: string): Partial<KnowledgeNote>[] {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return [];
 
-  const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/^"/, '').replace(/"$/, ''));
+  const header = lines[0]
+    .split(',')
+    .map((h) => h.trim().toLowerCase().replace(/^"/, '').replace(/"$/, ''));
   const titleIdx = header.indexOf('title');
   const contentIdx = header.indexOf('content');
   const categoryIdx = header.indexOf('category');
@@ -86,7 +92,13 @@ function parseCSV(text: string): Partial<KnowledgeNote>[] {
       title: cols[titleIdx],
       content: cols[contentIdx],
       category: categoryIdx >= 0 ? cols[categoryIdx] : 'general',
-      keywords: keywordsIdx >= 0 ? cols[keywordsIdx].split(';').map(k => k.trim()).filter(Boolean) : undefined,
+      keywords:
+        keywordsIdx >= 0
+          ? cols[keywordsIdx]
+              .split(';')
+              .map((k) => k.trim())
+              .filter(Boolean)
+          : undefined,
     });
   }
   return notes;
@@ -138,7 +150,12 @@ function parseMarkdown(text: string): Partial<KnowledgeNote>[] {
         category = line.replace('category:', '').trim();
         contentStart = i + 1;
       } else if (line.startsWith('keywords:')) {
-        keywords = line.replace('keywords:', '').trim().split(',').map(k => k.trim()).filter(Boolean);
+        keywords = line
+          .replace('keywords:', '')
+          .trim()
+          .split(',')
+          .map((k) => k.trim())
+          .filter(Boolean);
         contentStart = i + 1;
       } else if (line === '') {
         contentStart = i + 1;
@@ -157,8 +174,35 @@ function parseMarkdown(text: string): Partial<KnowledgeNote>[] {
 }
 
 function extractKeywords(text: string): string[] {
-  const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/);
-  const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'to', 'of', 'and', 'or', 'in', 'on', 'at', 'for', 'with', 'from', 'by', 'this', 'that', 'it']);
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/);
+  const stopWords = new Set([
+    'the',
+    'a',
+    'an',
+    'is',
+    'are',
+    'was',
+    'were',
+    'be',
+    'been',
+    'to',
+    'of',
+    'and',
+    'or',
+    'in',
+    'on',
+    'at',
+    'for',
+    'with',
+    'from',
+    'by',
+    'this',
+    'that',
+    'it',
+  ]);
   const counts = new Map<string, number>();
   for (const w of words) {
     if (w.length < 3 || stopWords.has(w)) continue;

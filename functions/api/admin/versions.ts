@@ -20,7 +20,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
 // Rollback to a specific version
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const body = await ctx.request.json() as { noteId: string; version: number };
+  const body = (await ctx.request.json()) as { noteId: string; version: number };
   const user = (ctx.data as Record<string, unknown>).user as { name: string } | undefined;
 
   if (!body.noteId || body.version === undefined) {

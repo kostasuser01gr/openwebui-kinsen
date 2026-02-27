@@ -16,7 +16,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   // List recent sessions (using KV list with prefix)
   const list = await env.KV.list({ prefix: 'chat:', limit: 50 });
-  const sessions = list.keys.map(k => ({
+  const sessions = list.keys.map((k) => ({
     id: k.name.replace('chat:', ''),
     expiration: k.expiration,
   }));

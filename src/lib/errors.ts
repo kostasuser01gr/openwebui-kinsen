@@ -31,7 +31,7 @@ export function apiError(
   code: ErrorCode,
   message: string,
   status: number,
-  opts?: { retryAfter?: number; details?: Record<string, unknown> }
+  opts?: { retryAfter?: number; details?: Record<string, unknown> },
 ): Response {
   const body: ApiError = {
     error: true,
@@ -69,7 +69,10 @@ export const DEFAULT_PASSWORD_POLICY: PasswordPolicy = {
   preventReuseCount: 5,
 };
 
-export function validatePassword(password: string, policy: PasswordPolicy = DEFAULT_PASSWORD_POLICY): { valid: boolean; errors: string[] } {
+export function validatePassword(
+  password: string,
+  policy: PasswordPolicy = DEFAULT_PASSWORD_POLICY,
+): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
   if (password.length < policy.minLength) {
     errors.push(`Password must be at least ${policy.minLength} characters`);

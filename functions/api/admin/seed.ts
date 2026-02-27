@@ -1,11 +1,18 @@
 import type { Env, KnowledgeNote } from '../../../src/lib/types';
 import { SEED_NOTES } from '../../../src/lib/seed-data';
-import { SAMPLE_CUSTOMERS, SAMPLE_BOOKINGS, SAMPLE_VEHICLES } from '../../../src/lib/seed-customers';
+import {
+  SAMPLE_CUSTOMERS,
+  SAMPLE_BOOKINGS,
+  SAMPLE_VEHICLES,
+} from '../../../src/lib/seed-customers';
 import { DEFAULT_FLAGS } from '../../../src/lib/feature-flags';
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
-    const body = await request.json().catch(() => null) as { notes?: KnowledgeNote[]; all?: boolean } | null;
+    const body = (await request.json().catch(() => null)) as {
+      notes?: KnowledgeNote[];
+      all?: boolean;
+    } | null;
     const notes = body?.notes || SEED_NOTES;
     const seedAll = body?.all !== false; // default: seed everything
 
@@ -48,19 +55,19 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
       // Seed feature flags
       const now = new Date().toISOString();
-      const flags = DEFAULT_FLAGS.map(f => ({ ...f, updatedAt: now }));
+      const flags = DEFAULT_FLAGS.map((f) => ({ ...f, updatedAt: now }));
       await env.KV.put('feature:flags', JSON.stringify(flags));
       result.featureFlags = flags.length;
     }
 
-    return new Response(
-      JSON.stringify(result),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: 'Seed failed', details: String(err) }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'Seed failed', details: String(err) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 };

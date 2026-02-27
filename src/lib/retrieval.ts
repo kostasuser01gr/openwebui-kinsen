@@ -49,18 +49,111 @@ const ABBREVIATIONS: Record<string, string> = {
 
 // ── Stop words to strip from queries ────────────────────────
 const STOP_WORDS = new Set([
-  'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-  'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'shall',
-  'should', 'may', 'might', 'must', 'can', 'could', 'to', 'of', 'in',
-  'for', 'on', 'with', 'at', 'by', 'from', 'as', 'into', 'about',
-  'like', 'through', 'after', 'over', 'between', 'out', 'up', 'down',
-  'if', 'or', 'and', 'but', 'not', 'no', 'nor', 'so', 'yet',
-  'it', 'its', 'this', 'that', 'these', 'those', 'i', 'me', 'my',
-  'we', 'our', 'you', 'your', 'he', 'she', 'they', 'them', 'their',
-  'what', 'which', 'who', 'whom', 'how', 'when', 'where', 'why',
-  'am', 'just', 'also', 'very', 'much', 'more', 'most', 'some', 'any',
-  'all', 'each', 'every', 'both', 'few', 'than', 'too', 'other',
-  'please', 'tell', 'know', 'need', 'want', 'get', 'got', 'help',
+  'a',
+  'an',
+  'the',
+  'is',
+  'are',
+  'was',
+  'were',
+  'be',
+  'been',
+  'being',
+  'have',
+  'has',
+  'had',
+  'do',
+  'does',
+  'did',
+  'will',
+  'would',
+  'shall',
+  'should',
+  'may',
+  'might',
+  'must',
+  'can',
+  'could',
+  'to',
+  'of',
+  'in',
+  'for',
+  'on',
+  'with',
+  'at',
+  'by',
+  'from',
+  'as',
+  'into',
+  'about',
+  'like',
+  'through',
+  'after',
+  'over',
+  'between',
+  'out',
+  'up',
+  'down',
+  'if',
+  'or',
+  'and',
+  'but',
+  'not',
+  'no',
+  'nor',
+  'so',
+  'yet',
+  'it',
+  'its',
+  'this',
+  'that',
+  'these',
+  'those',
+  'i',
+  'me',
+  'my',
+  'we',
+  'our',
+  'you',
+  'your',
+  'he',
+  'she',
+  'they',
+  'them',
+  'their',
+  'what',
+  'which',
+  'who',
+  'whom',
+  'how',
+  'when',
+  'where',
+  'why',
+  'am',
+  'just',
+  'also',
+  'very',
+  'much',
+  'more',
+  'most',
+  'some',
+  'any',
+  'all',
+  'each',
+  'every',
+  'both',
+  'few',
+  'than',
+  'too',
+  'other',
+  'please',
+  'tell',
+  'know',
+  'need',
+  'want',
+  'get',
+  'got',
+  'help',
 ]);
 
 /**
@@ -83,7 +176,7 @@ export function tokenize(text: string): string[] {
   return text
     .toLowerCase()
     .split(/[\s,;:.!?()[\]{}"'`/\\|]+/)
-    .filter(t => t.length > 1 && !STOP_WORDS.has(t));
+    .filter((t) => t.length > 1 && !STOP_WORDS.has(t));
 }
 
 /**
@@ -133,9 +226,9 @@ export function levenshtein(a: string, b: string): number {
       } else {
         const cost = a[i - 1] === b[j - 1] ? 0 : 1;
         matrix[i][j] = Math.min(
-          matrix[i - 1][j] + 1,      // deletion
-          matrix[i][j - 1] + 1,      // insertion
-          matrix[i - 1][j - 1] + cost // substitution
+          matrix[i - 1][j] + 1, // deletion
+          matrix[i][j - 1] + 1, // insertion
+          matrix[i - 1][j - 1] + cost, // substitution
         );
       }
     }
@@ -183,15 +276,18 @@ function buildTF(text: string): Map<string, number> {
  * IDF = log(N / (1 + df)) where df = docs containing term
  */
 function computeIDF(term: string, docs: DocumentTerms[]): number {
-  const df = docs.filter(d => d.tf.has(term)).length;
+  const df = docs.filter((d) => d.tf.has(term)).length;
   return Math.log((docs.length + 1) / (1 + df)) + 1; // Smoothed IDF
 }
 
 /**
  * Build the TF-IDF index for the corpus.
  */
-export function buildCorpusIndex(notes: KnowledgeNote[]): { docs: DocumentTerms[]; idf: Map<string, number> } {
-  const docs: DocumentTerms[] = notes.map(note => {
+export function buildCorpusIndex(notes: KnowledgeNote[]): {
+  docs: DocumentTerms[];
+  idf: Map<string, number>;
+} {
+  const docs: DocumentTerms[] = notes.map((note) => {
     // Combine title (3x weight), keywords (4x weight), content (1x), category (2x)
     const weightedText = [
       ...Array(3).fill(note.title),
@@ -219,7 +315,11 @@ export function buildCorpusIndex(notes: KnowledgeNote[]): { docs: DocumentTerms[
 /**
  * Score a note using TF-IDF with synonym expansion, bigrams, and fuzzy matching.
  */
-export function scoreNote(query: string, note: KnowledgeNote, corpus?: { docs: DocumentTerms[]; idf: Map<string, number> }): number {
+export function scoreNote(
+  query: string,
+  note: KnowledgeNote,
+  corpus?: { docs: DocumentTerms[]; idf: Map<string, number> },
+): number {
   const rewritten = rewriteQuery(query);
   const rawTokens = tokenize(rewritten);
   const expandedTokens = expandWithSynonyms(rawTokens);
@@ -228,7 +328,7 @@ export function scoreNote(query: string, note: KnowledgeNote, corpus?: { docs: D
 
   // ── TF-IDF scoring (if corpus available) ──
   if (corpus) {
-    const doc = corpus.docs.find(d => d.noteId === note.id);
+    const doc = corpus.docs.find((d) => d.noteId === note.id);
     if (doc) {
       for (const qTerm of expandedTokens) {
         const tf = doc.tf.get(qTerm) || 0;
@@ -319,16 +419,16 @@ export function getConfidence(scoredNotes: ScoredNote[]): 'high' | 'medium' | 'l
 export function retrieveNotes(
   query: string,
   notes: KnowledgeNote[],
-  topN: number = 3
+  topN: number = 3,
 ): ScoredNote[] {
   const corpus = buildCorpusIndex(notes);
 
   const scored = notes
-    .map(note => {
+    .map((note) => {
       const s = scoreNote(query, note, corpus);
       return { note, score: s, confidence: 'low' as const };
     })
-    .filter(s => s.score > 0)
+    .filter((s) => s.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, topN);
 
@@ -336,7 +436,7 @@ export function retrieveNotes(
   const confidence = getConfidence(scored);
   return scored.map((s, i) => ({
     ...s,
-    confidence: i === 0 ? confidence : (s.score >= 12 ? 'medium' : 'low'),
+    confidence: i === 0 ? confidence : s.score >= 12 ? 'medium' : 'low',
   }));
 }
 
@@ -346,14 +446,14 @@ export function retrieveNotes(
 export function buildContextualQuery(
   currentMessage: string,
   history: ChatMessage[],
-  maxTurns: number = 3
+  maxTurns: number = 3,
 ): string {
   if (history.length === 0) return currentMessage;
 
   const recentUserMsgs = history
-    .filter(m => m.role === 'user')
+    .filter((m) => m.role === 'user')
     .slice(-maxTurns)
-    .map(m => m.content);
+    .map((m) => m.content);
 
   if (currentMessage.split(/\s+/).length <= 5 && recentUserMsgs.length > 0) {
     return `${recentUserMsgs.join(' ')} ${currentMessage}`;
@@ -368,16 +468,16 @@ export function buildContextualQuery(
 export function generateFollowups(
   query: string,
   matchedNotes: ScoredNote[],
-  allNotes: KnowledgeNote[]
+  allNotes: KnowledgeNote[],
 ): string[] {
   const followups: string[] = [];
-  const matchedIds = new Set(matchedNotes.map(s => s.note.id));
+  const matchedIds = new Set(matchedNotes.map((s) => s.note.id));
 
   for (const { note } of matchedNotes) {
     if (note.relatedNotes) {
       for (const relId of note.relatedNotes) {
         if (!matchedIds.has(relId)) {
-          const relNote = allNotes.find(n => n.id === relId);
+          const relNote = allNotes.find((n) => n.id === relId);
           if (relNote) {
             followups.push(`What about ${relNote.title.toLowerCase()}?`);
           }
@@ -386,7 +486,7 @@ export function generateFollowups(
     }
   }
 
-  const matchedCategories = new Set(matchedNotes.map(s => s.note.category));
+  const matchedCategories = new Set(matchedNotes.map((s) => s.note.category));
   const FOLLOW_UP_MAP: Record<string, string[]> = {
     billing: [
       'What discounts can I offer?',
@@ -403,14 +503,8 @@ export function generateFollowups(
       'What are the loyalty program tiers?',
       'How do I check fleet availability?',
     ],
-    safety: [
-      'What is the damage inspection procedure?',
-      'How do I contact emergency services?',
-    ],
-    compliance: [
-      'What documents do I need to verify?',
-      'What is the minimum age requirement?',
-    ],
+    safety: ['What is the damage inspection procedure?', 'How do I contact emergency services?'],
+    compliance: ['What documents do I need to verify?', 'What is the minimum age requirement?'],
   };
 
   for (const cat of matchedCategories) {
@@ -428,10 +522,7 @@ export function generateFollowups(
 /**
  * Build a composite response from matched notes with confidence badge.
  */
-export function buildResponse(
-  query: string,
-  scoredNotes: ScoredNote[]
-): string {
+export function buildResponse(query: string, scoredNotes: ScoredNote[]): string {
   if (scoredNotes.length === 0) {
     return `I couldn't find a specific policy or procedure matching your question. Here are some things I can help with:
 
@@ -470,7 +561,7 @@ Please try rephrasing your question or ask about one of these topics.`;
     }
   }
 
-  reply += `\n\n_Last updated: ${scoredNotes.map(s => s.note.updatedAt).join(', ')}_`;
+  reply += `\n\n_Last updated: ${scoredNotes.map((s) => s.note.updatedAt).join(', ')}_`;
   return reply;
 }
 
@@ -515,7 +606,7 @@ export function getAutoSuggestions(
   prefix: string,
   notes: KnowledgeNote[],
   recentSearches: string[] = [],
-  limit: number = 8
+  limit: number = 8,
 ): { type: 'note' | 'recent' | 'intent'; text: string; id?: string }[] {
   const p = prefix.toLowerCase().trim();
   if (p.length < 2) return [];
@@ -560,7 +651,7 @@ export function getAutoSuggestions(
     'Upsell insurance script',
   ];
   for (const cq of commonQueries) {
-    if (cq.toLowerCase().includes(p) && !results.find(r => r.text === cq)) {
+    if (cq.toLowerCase().includes(p) && !results.find((r) => r.text === cq)) {
       results.push({ type: 'intent', text: cq });
     }
   }

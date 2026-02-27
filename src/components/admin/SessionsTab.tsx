@@ -18,11 +18,15 @@ export function SessionsManager() {
       if (res.ok) {
         setSessions(await res.json());
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchSessions(); }, [fetchSessions]);
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
 
   const revokeSession = async (tokenPrefix: string) => {
     setRevoking(tokenPrefix);
@@ -32,7 +36,9 @@ export function SessionsManager() {
         credentials: 'include',
       });
       await fetchSessions();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     setRevoking(null);
   };
 
@@ -45,7 +51,9 @@ export function SessionsManager() {
         credentials: 'include',
       });
       await fetchSessions();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     setRevoking(null);
   };
 
@@ -53,7 +61,14 @@ export function SessionsManager() {
 
   return (
     <div className="sessions-manager">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 12,
+        }}
+      >
         <h3 style={{ margin: 0 }}>Active Sessions</h3>
         {sessions.length > 1 && (
           <button className="btn btn-sm" onClick={revokeAll} disabled={revoking === 'all'}>
@@ -77,10 +92,18 @@ export function SessionsManager() {
           <tbody>
             {sessions.map((s) => (
               <tr key={s.token}>
-                <td><code>{s.token}</code></td>
+                <td>
+                  <code>{s.token}</code>
+                </td>
                 <td>{s.ip}</td>
                 <td>{s.createdAt ? new Date(s.createdAt).toLocaleString() : '—'}</td>
-                <td>{s.current ? <span style={{ color: 'var(--success)' }}>● Current</span> : 'Active'}</td>
+                <td>
+                  {s.current ? (
+                    <span style={{ color: 'var(--success)' }}>● Current</span>
+                  ) : (
+                    'Active'
+                  )}
+                </td>
                 <td>
                   {!s.current && (
                     <button

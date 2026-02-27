@@ -68,7 +68,7 @@ describe('Levenshtein & fuzzy matching', () => {
   it('fuzzy search works for "deposite" → deposit', () => {
     const results = retrieveNotes('deposite rules', SEED_NOTES, 3);
     expect(results.length).toBeGreaterThan(0);
-    const ids = results.map(r => r.note.id);
+    const ids = results.map((r) => r.note.id);
     expect(ids).toContain('deposit-rules');
   });
 });
@@ -161,13 +161,13 @@ describe('Auto-suggest', () => {
   it('suggests based on note titles', () => {
     const suggestions = getAutoSuggestions('fuel', SEED_NOTES, []);
     expect(suggestions.length).toBeGreaterThan(0);
-    expect(suggestions.some(s => s.text.toLowerCase().includes('fuel'))).toBe(true);
+    expect(suggestions.some((s) => s.text.toLowerCase().includes('fuel'))).toBe(true);
   });
 
   it('suggests from recent searches', () => {
     const recent = ['how to handle damage', 'deposit amount'];
     const suggestions = getAutoSuggestions('depo', SEED_NOTES, recent);
-    expect(suggestions.some(s => s.text.includes('deposit'))).toBe(true);
+    expect(suggestions.some((s) => s.text.includes('deposit'))).toBe(true);
   });
 
   it('returns empty for very short query', () => {
@@ -194,32 +194,32 @@ describe('Password policy', () => {
   it('rejects short password', () => {
     const result = validatePassword('Ab1', DEFAULT_PASSWORD_POLICY);
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('8 characters'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('8 characters'))).toBe(true);
   });
 
   it('rejects missing uppercase', () => {
     const result = validatePassword('alllowercase1', DEFAULT_PASSWORD_POLICY);
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('uppercase'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('uppercase'))).toBe(true);
   });
 
   it('rejects missing number', () => {
     const result = validatePassword('NoNumberHere', DEFAULT_PASSWORD_POLICY);
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('number'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('number'))).toBe(true);
   });
 
   it('rejects missing lowercase', () => {
     const result = validatePassword('ALLUPPERCASE1', DEFAULT_PASSWORD_POLICY);
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('lowercase'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('lowercase'))).toBe(true);
   });
 
   it('enforces special char when required', () => {
     const strictPolicy = { ...DEFAULT_PASSWORD_POLICY, requireSpecial: true };
     const result = validatePassword('StrongP4ss', strictPolicy);
     expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('special'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('special'))).toBe(true);
   });
 
   it('accepts with special char when required', () => {

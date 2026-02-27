@@ -11,12 +11,12 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const raw = await ctx.env.KV.get(`workflow:${id}`);
     if (!raw) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
     const instance = JSON.parse(raw) as WorkflowInstance;
-    const template = WORKFLOW_TEMPLATES.find(t => t.id === instance.templateId);
+    const template = WORKFLOW_TEMPLATES.find((t) => t.id === instance.templateId);
     return new Response(JSON.stringify({ instance, template }));
   }
 
   // List templates
-  const templates = WORKFLOW_TEMPLATES.map(t => ({
+  const templates = WORKFLOW_TEMPLATES.map((t) => ({
     id: t.id,
     title: t.title,
     description: t.description,
@@ -30,7 +30,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 // Create new workflow instance or advance step
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const user = (ctx.data as Record<string, unknown>).user as { userId: string } | undefined;
-  const body = await ctx.request.json() as {
+  const body = (await ctx.request.json()) as {
     action: 'start' | 'advance' | 'abandon';
     templateId?: string;
     instanceId?: string;
@@ -39,9 +39,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   };
 
   if (body.action === 'start') {
-    if (!body.templateId) return new Response(JSON.stringify({ error: 'templateId required' }), { status: 400 });
-    const template = WORKFLOW_TEMPLATES.find(t => t.id === body.templateId);
-    if (!template) return new Response(JSON.stringify({ error: 'Template not found' }), { status: 404 });
+    if (!body.templateId)
+      return new Response(JSON.stringify({ error: 'templateId required' }), { status: 400 });
+    const template = WORKFLOW_TEMPLATES.find((t) => t.id === body.templateId);
+    if (!template)
+      return new Response(JSON.stringify({ error: 'Template not found' }), { status: 404 });
 
     const instance: WorkflowInstance = {
       id: `WF-${Date.now().toString(36).toUpperCase()}`,
@@ -55,7 +57,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       updatedAt: new Date().toISOString(),
     };
 
-    await ctx.env.KV.put(`workflow:${instance.id}`, JSON.stringify(instance), { expirationTtl: 30 * 86400 });
+    await ctx.env.KV.put(`workflow:${instance.id}`, JSON.stringify(instance), {
+      expirationTtl: 30 * 86400,
+    });
 
     // Add to user's active workflows index
     const userId = user?.userId || 'anonymous';
@@ -69,13 +73,15 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   }
 
   if (body.action === 'advance') {
-    if (!body.instanceId) return new Response(JSON.stringify({ error: 'instanceId required' }), { status: 400 });
+    if (!body.instanceId)
+      return new Response(JSON.stringify({ error: 'instanceId required' }), { status: 400 });
     const raw = await ctx.env.KV.get(`workflow:${body.instanceId}`);
     if (!raw) return new Response(JSON.stringify({ error: 'Instance not found' }), { status: 404 });
 
     const instance = JSON.parse(raw) as WorkflowInstance;
-    const template = WORKFLOW_TEMPLATES.find(t => t.id === instance.templateId);
-    if (!template) return new Response(JSON.stringify({ error: 'Template not found' }), { status: 404 });
+    const template = WORKFLOW_TEMPLATES.find((t) => t.id === instance.templateId);
+    if (!template)
+      return new Response(JSON.stringify({ error: 'Template not found' }), { status: 404 });
 
     // Save step data
     if (body.data) {
@@ -88,7 +94,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     }
 
     // Determine next step
-    const currentStep = template.steps.find(s => s.id === instance.currentStepId);
+    const currentStep = template.steps.find((s) => s.id === instance.currentStepId);
     let nextStepId = body.nextStepId || currentStep?.nextStepId;
 
     if (!nextStepId) {
@@ -99,20 +105,25 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     }
 
     instance.updatedAt = new Date().toISOString();
-    await ctx.env.KV.put(`workflow:${body.instanceId}`, JSON.stringify(instance), { expirationTtl: 30 * 86400 });
+    await ctx.env.KV.put(`workflow:${body.instanceId}`, JSON.stringify(instance), {
+      expirationTtl: 30 * 86400,
+    });
 
     return new Response(JSON.stringify({ ok: true, instance, template }));
   }
 
   if (body.action === 'abandon') {
-    if (!body.instanceId) return new Response(JSON.stringify({ error: 'instanceId required' }), { status: 400 });
+    if (!body.instanceId)
+      return new Response(JSON.stringify({ error: 'instanceId required' }), { status: 400 });
     const raw = await ctx.env.KV.get(`workflow:${body.instanceId}`);
     if (!raw) return new Response(JSON.stringify({ error: 'Instance not found' }), { status: 404 });
 
     const instance = JSON.parse(raw) as WorkflowInstance;
     instance.status = 'abandoned';
     instance.updatedAt = new Date().toISOString();
-    await ctx.env.KV.put(`workflow:${body.instanceId}`, JSON.stringify(instance), { expirationTtl: 30 * 86400 });
+    await ctx.env.KV.put(`workflow:${body.instanceId}`, JSON.stringify(instance), {
+      expirationTtl: 30 * 86400,
+    });
 
     return new Response(JSON.stringify({ ok: true, instance }));
   }

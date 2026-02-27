@@ -98,7 +98,11 @@ let currentLocale: Locale = 'en';
 
 export function setLocale(locale: Locale) {
   currentLocale = locale;
-  try { localStorage.setItem('kinsen-locale', locale); } catch { /* SSR/test */ }
+  try {
+    localStorage.setItem('kinsen-locale', locale);
+  } catch {
+    /* SSR/test */
+  }
 }
 
 export function getLocale(): Locale {

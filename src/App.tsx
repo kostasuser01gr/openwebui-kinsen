@@ -15,6 +15,11 @@ interface UserInfo {
   role: string;
 }
 
+interface AuthMeResponse {
+  ok?: boolean;
+  user?: UserInfo;
+}
+
 export default function App() {
   const [authenticated, setAuthenticated] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -32,7 +37,9 @@ export default function App() {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(true);
   // Actions triggered by command palette, forwarded to ChatWindow
-  const [pendingAction, setPendingAction] = useState<{ action: string; payload?: unknown } | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ action: string; payload?: unknown } | null>(
+    null,
+  );
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
@@ -41,17 +48,18 @@ export default function App() {
 
   // Session check
   useEffect(() => {
-    fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ message: '__ping__', sessionId: '__check__' }),
-    })
-      .then(res => {
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then((res) => {
         if (res.ok) {
+          return res.json() as Promise<AuthMeResponse>;
+        }
+        return null;
+      })
+      .then((data) => {
+        if (data?.user) {
           setAuthenticated(true);
-          const stored = localStorage.getItem('kinsen-user');
-          if (stored) setUser(JSON.parse(stored));
+          setUser(data.user);
+          localStorage.setItem('kinsen-user', JSON.stringify(data.user));
         }
       })
       .catch(() => {})
@@ -62,15 +70,17 @@ export default function App() {
   useEffect(() => {
     if (!authenticated) return;
     fetch('/api/preferences', { credentials: 'include' })
-      .then(r => r.ok ? r.json() as Promise<UserPreferences> : null)
-      .then(p => { if (p) setPreferences(p); })
+      .then((r) => (r.ok ? (r.json() as Promise<UserPreferences>) : null))
+      .then((p) => {
+        if (p) setPreferences(p);
+      })
       .catch(() => {});
 
     const loadNotifCount = () => {
       fetch('/api/notifications', { credentials: 'include' })
-        .then(r => r.ok ? r.json() as Promise<NotifType[]> : [])
-        .then(notifs => {
-          if (Array.isArray(notifs)) setUnreadCount(notifs.filter(n => !n.read).length);
+        .then((r) => (r.ok ? (r.json() as Promise<NotifType[]>) : []))
+        .then((notifs) => {
+          if (Array.isArray(notifs)) setUnreadCount(notifs.filter((n) => !n.read).length);
         })
         .catch(() => {});
     };
@@ -84,7 +94,7 @@ export default function App() {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setShowCommandPalette(prev => !prev);
+        setShowCommandPalette((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handler);
@@ -97,24 +107,40 @@ export default function App() {
     localStorage.setItem('kinsen-user', JSON.stringify(userInfo));
   };
 
-  const handleCommandAction = useCallback((action: string, payload?: unknown) => {
-    switch (action) {
-      case 'toggle-dark':
-        setDarkMode(d => !d);
-        break;
-      case 'open-admin':
-        setView('admin');
-        break;
-      case 'open-vehicles':
-        setView('vehicles');
-        break;
-      default:
-        // Forward to ChatWindow via pending action
-        setPendingAction({ action, payload });
-        if (view !== 'chat') setView('chat');
-        break;
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch {
+      // best effort logout
+    } finally {
+      localStorage.removeItem('kinsen-user');
+      setUser(null);
+      setAuthenticated(false);
+      setView('chat');
     }
-  }, [view]);
+  };
+
+  const handleCommandAction = useCallback(
+    (action: string, payload?: unknown) => {
+      switch (action) {
+        case 'toggle-dark':
+          setDarkMode((d) => !d);
+          break;
+        case 'open-admin':
+          setView('admin');
+          break;
+        case 'open-vehicles':
+          setView('vehicles');
+          break;
+        default:
+          // Forward to ChatWindow via pending action
+          setPendingAction({ action, payload });
+          if (view !== 'chat') setView('chat');
+          break;
+      }
+    },
+    [view],
+  );
 
   if (checking) {
     return (
@@ -126,7 +152,11 @@ export default function App() {
   }
 
   if (!authenticated) {
-    return <ToastProvider><LoginGate onSuccess={handleLogin} darkMode={darkMode} /></ToastProvider>;
+    return (
+      <ToastProvider>
+        <LoginGate onSuccess={handleLogin} darkMode={darkMode} />
+      </ToastProvider>
+    );
   }
 
   const isAdmin = user?.role === 'admin' || user?.role === 'manager' || user?.role === 'supervisor';
@@ -162,9 +192,13 @@ export default function App() {
               user={user}
               darkMode={darkMode}
               onToggleDark={() => setDarkMode(!darkMode)}
+              onLogout={handleLogout}
               onOpenAdmin={isAdmin ? () => setView('admin') : undefined}
               notificationBell={
-                <NotificationBell onClick={() => setShowNotifications(!showNotifications)} unreadCount={unreadCount} />
+                <NotificationBell
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  unreadCount={unreadCount}
+                />
               }
               onOpenVehicles={() => setView('vehicles')}
               onOpenCommandPalette={() => setShowCommandPalette(true)}
@@ -176,7 +210,10 @@ export default function App() {
           </ErrorBoundary>
         )}
 
-        <NotificationCenter isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+        <NotificationCenter
+          isOpen={showNotifications}
+          onClose={() => setShowNotifications(false)}
+        />
       </ErrorBoundary>
     </ToastProvider>
   );

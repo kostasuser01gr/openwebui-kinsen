@@ -1,17 +1,17 @@
 import type { Env } from '../../src/lib/types';
 import { sha256, generateSessionId } from '../../src/lib/crypto';
 import { loginUser } from '../../src/lib/users';
+import { buildSessionCookie, isSecureRequest } from '../lib/auth-session';
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
-    const body = await request.json() as {
+    const body = (await request.json()) as {
       passcode?: string;
       email?: string;
       password?: string;
     };
 
-    const url = new URL(request.url);
-    const isSecure = url.protocol === 'https:';
+    const secure = isSecureRequest(request);
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
 
     // Mode 1: Individual user login (email + password)
@@ -24,16 +24,23 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         });
       }
 
-      return new Response(JSON.stringify({
-        ok: true,
-        user: { name: result.session.name, email: result.session.email, role: result.session.role },
-      }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Set-Cookie': `kinsen_session=${result.token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${isSecure ? '; Secure' : ''}`,
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          user: {
+            name: result.session.name,
+            email: result.session.email,
+            role: result.session.role,
+          },
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Set-Cookie': buildSessionCookie(result.token, secure),
+          },
         },
-      });
+      );
     }
 
     // Mode 2: Shared passcode login (legacy/simple mode)
@@ -59,7 +66,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Set-Cookie': `kinsen_session=${sessionId}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400${isSecure ? '; Secure' : ''}`,
+          'Set-Cookie': buildSessionCookie(sessionId, secure),
         },
       });
     }

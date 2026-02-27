@@ -6,7 +6,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'damage-claim',
     title: 'Damage Claim Processing',
-    description: 'Step-by-step workflow for processing a vehicle damage claim from discovery to resolution.',
+    description:
+      'Step-by-step workflow for processing a vehicle damage claim from discovery to resolution.',
     category: 'operations',
     initialStepId: 'assess',
     steps: [
@@ -18,8 +19,39 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         fields: [
           { name: 'rentalId', label: 'Rental/Booking ID', type: 'text', required: true },
           { name: 'vehiclePlate', label: 'Vehicle Plate', type: 'text', required: true },
-          { name: 'damageLocation', label: 'Damage Location', type: 'select', options: ['Front Bumper', 'Rear Bumper', 'Left Side', 'Right Side', 'Hood', 'Roof', 'Interior', 'Windshield', 'Wheels/Tires', 'Undercarriage'], required: true },
-          { name: 'damageType', label: 'Damage Type', type: 'select', options: ['Scratch', 'Dent', 'Crack', 'Broken Part', 'Stain/Burn', 'Missing Part', 'Mechanical'], required: true },
+          {
+            name: 'damageLocation',
+            label: 'Damage Location',
+            type: 'select',
+            options: [
+              'Front Bumper',
+              'Rear Bumper',
+              'Left Side',
+              'Right Side',
+              'Hood',
+              'Roof',
+              'Interior',
+              'Windshield',
+              'Wheels/Tires',
+              'Undercarriage',
+            ],
+            required: true,
+          },
+          {
+            name: 'damageType',
+            label: 'Damage Type',
+            type: 'select',
+            options: [
+              'Scratch',
+              'Dent',
+              'Crack',
+              'Broken Part',
+              'Stain/Burn',
+              'Missing Part',
+              'Mechanical',
+            ],
+            required: true,
+          },
           { name: 'description', label: 'Detailed Description', type: 'textarea', required: true },
         ],
         nextStepId: 'photos',
@@ -64,9 +96,19 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         description: 'Get or enter the repair cost estimate.',
         type: 'input',
         fields: [
-          { name: 'estimatedCost', label: 'Estimated Repair Cost (€)', type: 'number', required: true },
+          {
+            name: 'estimatedCost',
+            label: 'Estimated Repair Cost (€)',
+            type: 'number',
+            required: true,
+          },
           { name: 'deductible', label: 'Customer Deductible (€)', type: 'number', required: true },
-          { name: 'customerCharge', label: 'Amount Customer Owes (€)', type: 'number', required: true },
+          {
+            name: 'customerCharge',
+            label: 'Amount Customer Owes (€)',
+            type: 'number',
+            required: true,
+          },
         ],
         nextStepId: 'approval-needed',
       },
@@ -113,7 +155,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'new-rental-walkthrough',
     title: 'New Rental Setup',
-    description: 'Complete walkthrough for setting up a new rental from reservation to key handoff.',
+    description:
+      'Complete walkthrough for setting up a new rental from reservation to key handoff.',
     category: 'operations',
     initialStepId: 'verify-booking',
     steps: [
@@ -125,7 +168,22 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         fields: [
           { name: 'bookingId', label: 'Booking ID', type: 'text', required: true },
           { name: 'customerName', label: 'Customer Name', type: 'text', required: true },
-          { name: 'vehicleClass', label: 'Reserved Vehicle Class', type: 'select', options: ['Economy', 'Compact', 'Midsize', 'SUV', 'Premium', 'Luxury', 'Convertible', 'Van'], required: true },
+          {
+            name: 'vehicleClass',
+            label: 'Reserved Vehicle Class',
+            type: 'select',
+            options: [
+              'Economy',
+              'Compact',
+              'Midsize',
+              'SUV',
+              'Premium',
+              'Luxury',
+              'Convertible',
+              'Van',
+            ],
+            required: true,
+          },
         ],
         nextStepId: 'customer-docs',
       },
@@ -135,9 +193,9 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         description: 'Check all required documents.',
         type: 'checklist',
         checklistItems: [
-          'Valid driver\'s license (check expiry)',
+          "Valid driver's license (check expiry)",
           'Second form of ID (passport/national ID)',
-          'Credit card in driver\'s name',
+          "Credit card in driver's name",
           'Minimum age requirement met (21+, or 25+ for luxury)',
           'International Driving Permit if non-EU license',
           'Additional driver documents if applicable',
@@ -222,7 +280,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
   {
     id: 'refund-process',
     title: 'Refund Processing',
-    description: 'Step-by-step workflow for processing customer refunds with appropriate approvals.',
+    description:
+      'Step-by-step workflow for processing customer refunds with appropriate approvals.',
     category: 'finance',
     initialStepId: 'refund-details',
     steps: [
@@ -235,7 +294,21 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           { name: 'bookingId', label: 'Booking ID', type: 'text', required: true },
           { name: 'customerName', label: 'Customer Name', type: 'text', required: true },
           { name: 'refundAmount', label: 'Refund Amount (€)', type: 'number', required: true },
-          { name: 'reason', label: 'Reason', type: 'select', options: ['Overcharge', 'Cancellation', 'Service Issue', 'Vehicle Downgrade', 'Insurance Claim', 'Goodwill Gesture', 'Other'], required: true },
+          {
+            name: 'reason',
+            label: 'Reason',
+            type: 'select',
+            options: [
+              'Overcharge',
+              'Cancellation',
+              'Service Issue',
+              'Vehicle Downgrade',
+              'Insurance Claim',
+              'Goodwill Gesture',
+              'Other',
+            ],
+            required: true,
+          },
           { name: 'description', label: 'Detailed Reason', type: 'textarea', required: true },
         ],
         nextStepId: 'refund-approval',
@@ -288,9 +361,34 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
         fields: [
           { name: 'customerName', label: 'Customer Name', type: 'text', required: true },
           { name: 'bookingId', label: 'Booking ID (if applicable)', type: 'text', required: false },
-          { name: 'category', label: 'Complaint Category', type: 'select', options: ['Vehicle Quality', 'Service Quality', 'Billing Dispute', 'Wait Time', 'Staff Behavior', 'Safety Concern', 'Booking Error', 'Other'], required: true },
+          {
+            name: 'category',
+            label: 'Complaint Category',
+            type: 'select',
+            options: [
+              'Vehicle Quality',
+              'Service Quality',
+              'Billing Dispute',
+              'Wait Time',
+              'Staff Behavior',
+              'Safety Concern',
+              'Booking Error',
+              'Other',
+            ],
+            required: true,
+          },
           { name: 'description', label: 'Complaint Description', type: 'textarea', required: true },
-          { name: 'severity', label: 'Severity', type: 'select', options: ['Low — Minor inconvenience', 'Medium — Service failure', 'High — Safety or major issue'], required: true },
+          {
+            name: 'severity',
+            label: 'Severity',
+            type: 'select',
+            options: [
+              'Low — Minor inconvenience',
+              'Medium — Service failure',
+              'High — Safety or major issue',
+            ],
+            required: true,
+          },
         ],
         nextStepId: 'severity-route',
       },
@@ -321,7 +419,8 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       {
         id: 'escalate-complaint',
         title: 'Escalate to Manager',
-        description: 'This complaint requires immediate manager attention. An escalation will be created.',
+        description:
+          'This complaint requires immediate manager attention. An escalation will be created.',
         type: 'info',
         nextStepId: 'resolve',
       },

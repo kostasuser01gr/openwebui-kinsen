@@ -14,12 +14,12 @@ interface ApiKey {
 }
 
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
-  const indexRaw = await env.KV.get('apikey:index', 'json') as string[] | null;
+  const indexRaw = (await env.KV.get('apikey:index', 'json')) as string[] | null;
   const ids = indexRaw || [];
 
   const keys: Omit<ApiKey, 'keyHash'>[] = [];
   for (const id of ids) {
-    const raw = await env.KV.get(`apikey:${id}`, 'json') as ApiKey | null;
+    const raw = (await env.KV.get(`apikey:${id}`, 'json')) as ApiKey | null;
     if (raw) {
       const { keyHash: _, ...safe } = raw;
       keys.push(safe);
@@ -30,7 +30,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
 };
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  const body = await request.json() as {
+  const body = (await request.json()) as {
     name: string;
     scopes?: string[];
     expiresInDays?: number;
@@ -60,19 +60,22 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   await env.KV.put(`apikey:${id}`, JSON.stringify(apiKey));
 
-  const indexRaw = await env.KV.get('apikey:index', 'json') as string[] | null;
+  const indexRaw = (await env.KV.get('apikey:index', 'json')) as string[] | null;
   const index = indexRaw || [];
   index.push(id);
   await env.KV.put('apikey:index', JSON.stringify(index));
 
   // Return full key ONCE — it cannot be retrieved again
-  return Response.json({
-    ok: true,
-    id,
-    key: rawKey,
-    prefix: apiKey.prefix,
-    message: 'Save this key now — it will not be shown again.',
-  }, { status: 201 });
+  return Response.json(
+    {
+      ok: true,
+      id,
+      key: rawKey,
+      prefix: apiKey.prefix,
+      message: 'Save this key now — it will not be shown again.',
+    },
+    { status: 201 },
+  );
 };
 
 export const onRequestDelete: PagesFunction<Env> = async ({ request, env }) => {
@@ -81,8 +84,8 @@ export const onRequestDelete: PagesFunction<Env> = async ({ request, env }) => {
   if (!id) return Response.json({ error: 'id required' }, { status: 400 });
 
   await env.KV.delete(`apikey:${id}`);
-  const indexRaw = await env.KV.get('apikey:index', 'json') as string[] | null;
-  const index = (indexRaw || []).filter(i => i !== id);
+  const indexRaw = (await env.KV.get('apikey:index', 'json')) as string[] | null;
+  const index = (indexRaw || []).filter((i) => i !== id);
   await env.KV.put('apikey:index', JSON.stringify(index));
 
   return Response.json({ ok: true });
@@ -90,12 +93,12 @@ export const onRequestDelete: PagesFunction<Env> = async ({ request, env }) => {
 
 // Validate an API key against stored hashes
 export async function validateApiKey(env: Env, rawKey: string): Promise<ApiKey | null> {
-  const indexRaw = await env.KV.get('apikey:index', 'json') as string[] | null;
+  const indexRaw = (await env.KV.get('apikey:index', 'json')) as string[] | null;
   const ids = indexRaw || [];
   const hash = await hashKey(rawKey);
 
   for (const id of ids) {
-    const raw = await env.KV.get(`apikey:${id}`, 'json') as ApiKey | null;
+    const raw = (await env.KV.get(`apikey:${id}`, 'json')) as ApiKey | null;
     if (!raw || !raw.active) continue;
 
     if (raw.expiresAt && new Date(raw.expiresAt) < new Date()) continue;
@@ -116,6 +119,6 @@ async function hashKey(key: string): Promise<string> {
   const data = encoder.encode(key);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2, '0'))
+    .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }

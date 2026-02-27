@@ -31,16 +31,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const addToast = useCallback((type: ToastType, message: string, duration: number = 4000) => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    setToasts(prev => [...prev.slice(-4), { id, type, message, duration }]);
-    if (duration > 0) {
-      setTimeout(() => removeToast(id), duration);
-    }
-  }, [removeToast]);
+  const addToast = useCallback(
+    (type: ToastType, message: string, duration: number = 4000) => {
+      const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      setToasts((prev) => [...prev.slice(-4), { id, type, message, duration }]);
+      if (duration > 0) {
+        setTimeout(() => removeToast(id), duration);
+      }
+    },
+    [removeToast],
+  );
 
   return (
     <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
@@ -50,17 +53,36 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) {
+function ToastContainer({
+  toasts,
+  onDismiss,
+}: {
+  toasts: Toast[];
+  onDismiss: (id: string) => void;
+}) {
   if (toasts.length === 0) return null;
-  const icons: Record<ToastType, string> = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+  const icons: Record<ToastType, string> = {
+    success: '✅',
+    error: '❌',
+    info: 'ℹ️',
+    warning: '⚠️',
+  };
 
   return (
     <div className="toast-container">
-      {toasts.map(t => (
+      {toasts.map((t) => (
         <div key={t.id} className={`toast toast-${t.type}`} onClick={() => onDismiss(t.id)}>
           <span className="toast-icon">{icons[t.type]}</span>
           <span className="toast-message">{t.message}</span>
-          <button className="toast-close" onClick={(e) => { e.stopPropagation(); onDismiss(t.id); }}>✕</button>
+          <button
+            className="toast-close"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDismiss(t.id);
+            }}
+          >
+            ✕
+          </button>
         </div>
       ))}
     </div>
@@ -98,15 +120,20 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   render() {
     if (this.state.hasError) {
-      return this.props.fallback || (
-        <div className="error-boundary-fallback">
-          <div className="error-boundary-icon">⚠️</div>
-          <h3>Something went wrong</h3>
-          <p>{this.state.error?.message || 'An unexpected error occurred'}</p>
-          <button className="btn-sm" onClick={() => this.setState({ hasError: false, error: null })}>
-            Try Again
-          </button>
-        </div>
+      return (
+        this.props.fallback || (
+          <div className="error-boundary-fallback">
+            <div className="error-boundary-icon">⚠️</div>
+            <h3>Something went wrong</h3>
+            <p>{this.state.error?.message || 'An unexpected error occurred'}</p>
+            <button
+              className="btn-sm"
+              onClick={() => this.setState({ hasError: false, error: null })}
+            >
+              Try Again
+            </button>
+          </div>
+        )
       );
     }
     return this.props.children;
@@ -128,10 +155,26 @@ export function CitationReader({ noteId, noteTitle, onClose }: CitationReaderPro
   useEffect(() => {
     setLoading(true);
     fetch('/api/admin/knowledge', { credentials: 'include' })
-      .then(r => r.ok ? r.json() as Promise<Array<{ id: string; title: string; content: string; category: string; keywords: string[] }>> : [])
-      .then(notes => {
+      .then((r) =>
+        r.ok
+          ? (r.json() as Promise<
+              Array<{
+                id: string;
+                title: string;
+                content: string;
+                category: string;
+                keywords: string[];
+              }>
+            >)
+          : [],
+      )
+      .then((notes) => {
         const note = (notes as any[]).find((n: any) => n.id === noteId);
-        setContent(note ? `# ${note.title}\n\n**Category:** ${note.category}\n**Keywords:** ${note.keywords.join(', ')}\n\n---\n\n${note.content}` : 'Note not found.');
+        setContent(
+          note
+            ? `# ${note.title}\n\n**Category:** ${note.category}\n**Keywords:** ${note.keywords.join(', ')}\n\n---\n\n${note.content}`
+            : 'Note not found.',
+        );
       })
       .catch(() => setContent('Failed to load note.'))
       .finally(() => setLoading(false));
@@ -141,10 +184,14 @@ export function CitationReader({ noteId, noteTitle, onClose }: CitationReaderPro
     <div className="citation-reader">
       <div className="citation-reader-header">
         <h3>📄 {noteTitle}</h3>
-        <button className="icon-btn" onClick={onClose}>✕</button>
+        <button className="icon-btn" onClick={onClose}>
+          ✕
+        </button>
       </div>
       <div className="citation-reader-body">
-        {loading ? <div className="tab-loading">Loading…</div> : (
+        {loading ? (
+          <div className="tab-loading">Loading…</div>
+        ) : (
           <pre className="citation-reader-content">{content}</pre>
         )}
       </div>
@@ -162,11 +209,12 @@ interface MessageSearchProps {
 
 export function MessageSearch({ messages, onJumpTo, onClose }: MessageSearchProps) {
   const [query, setQuery] = useState('');
-  const results = query.length >= 2
-    ? messages
-        .map((m, i) => ({ ...m, index: i }))
-        .filter(m => m.content.toLowerCase().includes(query.toLowerCase()))
-    : [];
+  const results =
+    query.length >= 2
+      ? messages
+          .map((m, i) => ({ ...m, index: i }))
+          .filter((m) => m.content.toLowerCase().includes(query.toLowerCase()))
+      : [];
 
   return (
     <div className="message-search-panel">
@@ -174,18 +222,20 @@ export function MessageSearch({ messages, onJumpTo, onClose }: MessageSearchProp
         <input
           type="text"
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={(e) => setQuery(e.target.value)}
           placeholder="Search messages…"
           autoFocus
           className="message-search-input"
         />
-        <button className="icon-btn" onClick={onClose}>✕</button>
+        <button className="icon-btn" onClick={onClose}>
+          ✕
+        </button>
       </div>
       <div className="message-search-results">
         {results.length === 0 && query.length >= 2 && (
           <div className="empty-state">No matches found</div>
         )}
-        {results.map(r => (
+        {results.map((r) => (
           <button key={r.index} className="message-search-result" onClick={() => onJumpTo(r.index)}>
             <span className="msr-role">{r.role === 'user' ? '👤' : '🤖'}</span>
             <span className="msr-text">{highlightMatch(r.content, query)}</span>
@@ -216,7 +266,9 @@ export function SavedReplies({ onSelect, onClose }: SavedRepliesProps) {
   const [replies, setReplies] = useState<{ id: string; title: string; text: string }[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('kinsen-saved-replies') || '[]');
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   });
   const [newTitle, setNewTitle] = useState('');
   const [newText, setNewText] = useState('');
@@ -237,7 +289,7 @@ export function SavedReplies({ onSelect, onClose }: SavedRepliesProps) {
   };
 
   const deleteReply = (id: string) => {
-    save(replies.filter(r => r.id !== id));
+    save(replies.filter((r) => r.id !== id));
   };
 
   return (
@@ -245,24 +297,52 @@ export function SavedReplies({ onSelect, onClose }: SavedRepliesProps) {
       <div className="saved-replies-header">
         <h3>💬 Saved Replies</h3>
         <div>
-          <button className="btn-sm" onClick={() => setShowAdd(!showAdd)}>+ Add</button>
-          <button className="icon-btn" onClick={onClose} style={{ marginLeft: 8 }}>✕</button>
+          <button className="btn-sm" onClick={() => setShowAdd(!showAdd)}>
+            + Add
+          </button>
+          <button className="icon-btn saved-replies-close-btn" onClick={onClose}>
+            ✕
+          </button>
         </div>
       </div>
       {showAdd && (
         <div className="saved-reply-form">
-          <input placeholder="Title" value={newTitle} onChange={e => setNewTitle(e.target.value)} />
-          <textarea placeholder="Reply text…" value={newText} onChange={e => setNewText(e.target.value)} rows={3} />
-          <button className="btn-sm active" onClick={addReply}>Save</button>
+          <input
+            placeholder="Title"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+          />
+          <textarea
+            placeholder="Reply text…"
+            value={newText}
+            onChange={(e) => setNewText(e.target.value)}
+            rows={3}
+          />
+          <button className="btn-sm active" onClick={addReply}>
+            Save
+          </button>
         </div>
       )}
       <div className="saved-replies-list">
-        {replies.length === 0 && <div className="empty-state">No saved replies yet. Click + Add to create one.</div>}
-        {replies.map(r => (
+        {replies.length === 0 && (
+          <div className="empty-state">No saved replies yet. Click + Add to create one.</div>
+        )}
+        {replies.map((r) => (
           <div key={r.id} className="saved-reply-item" onClick={() => onSelect(r.text)}>
             <div className="saved-reply-title">{r.title}</div>
-            <div className="saved-reply-preview">{r.text.slice(0, 80)}{r.text.length > 80 ? '…' : ''}</div>
-            <button className="icon-btn saved-reply-delete" onClick={(e) => { e.stopPropagation(); deleteReply(r.id); }}>🗑</button>
+            <div className="saved-reply-preview">
+              {r.text.slice(0, 80)}
+              {r.text.length > 80 ? '…' : ''}
+            </div>
+            <button
+              className="icon-btn saved-reply-delete"
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteReply(r.id);
+              }}
+            >
+              🗑
+            </button>
           </div>
         ))}
       </div>
@@ -289,8 +369,11 @@ export function AutoSuggest({ query, visible, onSelect }: AutoSuggestProps) {
     }
     const timer = setTimeout(() => {
       fetch(`/api/suggest?q=${encodeURIComponent(query)}`, { credentials: 'include' })
-        .then(r => r.ok ? r.json() as Promise<typeof suggestions> : [])
-        .then(s => { setSuggestions(s); setSelectedIndex(0); })
+        .then((r) => (r.ok ? (r.json() as Promise<typeof suggestions>) : []))
+        .then((s) => {
+          setSuggestions(s);
+          setSelectedIndex(0);
+        })
         .catch(() => setSuggestions([]));
     }, 200); // debounce
     return () => clearTimeout(timer);
@@ -301,10 +384,10 @@ export function AutoSuggest({ query, visible, onSelect }: AutoSuggestProps) {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex(i => Math.min(i + 1, suggestions.length - 1));
+        setSelectedIndex((i) => Math.min(i + 1, suggestions.length - 1));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex(i => Math.max(i - 1, 0));
+        setSelectedIndex((i) => Math.max(i - 1, 0));
       } else if (e.key === 'Tab' && suggestions.length > 0) {
         e.preventDefault();
         onSelect(suggestions[selectedIndex].text);
@@ -324,7 +407,10 @@ export function AutoSuggest({ query, visible, onSelect }: AutoSuggestProps) {
         <button
           key={`${s.type}-${i}`}
           className={`autosuggest-item ${i === selectedIndex ? 'selected' : ''}`}
-          onMouseDown={(e) => { e.preventDefault(); onSelect(s.text); }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            onSelect(s.text);
+          }}
           onMouseEnter={() => setSelectedIndex(i)}
         >
           <span className="autosuggest-icon">{typeIcons[s.type] || '💡'}</span>

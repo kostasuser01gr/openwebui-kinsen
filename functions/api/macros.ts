@@ -14,12 +14,12 @@ export const onRequestGet: PagesFunction<Env> = async () => {
 // POST: execute a macro with variables
 export const onRequestPost: PagesFunction<Env> = async ({ request }) => {
   try {
-    const { macroId, variables } = await request.json() as {
+    const { macroId, variables } = (await request.json()) as {
       macroId: string;
       variables: Record<string, string>;
     };
 
-    const macro = MACROS.find(m => m.id === macroId);
+    const macro = MACROS.find((m) => m.id === macroId);
     if (!macro) {
       return new Response(JSON.stringify({ error: 'Macro not found' }), {
         status: 404,

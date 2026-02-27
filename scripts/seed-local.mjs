@@ -26,34 +26,38 @@ const notes = new Function(`return ${match[1]}`)();
 
 console.log(`📚 Seeding ${notes.length} knowledge notes into local KV...`);
 
-const index = notes.map(n => n.id);
+const index = notes.map((n) => n.id);
 
 for (const note of notes) {
   const key = `knowledge:${note.id}`;
   const tmpFile = `/tmp/kinsen-seed-${note.id}.json`;
   writeFileSync(tmpFile, JSON.stringify(note));
   try {
-    execSync(
-      `npx wrangler kv key put --local --binding KV "${key}" --path "${tmpFile}"`,
-      { stdio: 'pipe' }
-    );
+    execSync(`npx wrangler kv key put --local --binding KV "${key}" --path "${tmpFile}"`, {
+      stdio: 'pipe',
+    });
     console.log(`  ✅ ${note.id}: ${note.title}`);
   } catch (e) {
     console.error(`  ❌ ${note.id}: ${e.message}`);
   }
-  try { unlinkSync(tmpFile); } catch {}
+  try {
+    unlinkSync(tmpFile);
+  } catch {}
 }
 
 // Write index
 const indexTmp = '/tmp/kinsen-seed-index.json';
 writeFileSync(indexTmp, JSON.stringify(index));
 try {
-  execSync(
-    `npx wrangler kv key put --local --binding KV "knowledge:index" --path "${indexTmp}"`,
-    { stdio: 'pipe' }
-  );
+  execSync(`npx wrangler kv key put --local --binding KV "knowledge:index" --path "${indexTmp}"`, {
+    stdio: 'pipe',
+  });
 } catch {}
-try { unlinkSync(indexTmp); } catch {}
+try {
+  unlinkSync(indexTmp);
+} catch {}
 
 console.log(`\n✅ Index written with ${index.length} entries`);
-console.log('Start dev server: npm run dev (in one terminal) + npx wrangler pages dev dist (in another)');
+console.log(
+  'Start dev server: npm run dev (in one terminal) + npx wrangler pages dev dist (in another)',
+);

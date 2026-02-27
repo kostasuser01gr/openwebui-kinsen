@@ -75,23 +75,29 @@ export async function getLastSyncTime(): Promise<string | null> {
 }
 
 // Simple offline search — keyword matching against cached notes
-export function offlineSearch(query: string, notes: CachedNote[]): { note: CachedNote; score: number }[] {
-  const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+export function offlineSearch(
+  query: string,
+  notes: CachedNote[],
+): { note: CachedNote; score: number }[] {
+  const words = query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
   if (words.length === 0) return [];
 
-  const results = notes.map(note => {
+  const results = notes.map((note) => {
     const text = `${note.title} ${note.content} ${note.tags.join(' ')}`.toLowerCase();
     let score = 0;
     for (const word of words) {
       if (text.includes(word)) score += 1;
       if (note.title.toLowerCase().includes(word)) score += 2;
-      if (note.tags.some(t => t.toLowerCase().includes(word))) score += 1.5;
+      if (note.tags.some((t) => t.toLowerCase().includes(word))) score += 1.5;
     }
     return { note, score };
   });
 
   return results
-    .filter(r => r.score > 0)
+    .filter((r) => r.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 }

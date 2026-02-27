@@ -11,10 +11,25 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const hourlyCounts = new Array(24).fill(0);
 
   const intents = [
-    'deposit', 'late-return', 'fuel', 'mileage', 'cross-border', 'damage',
-    'accident', 'insurance', 'verification', 'availability', 'pricing',
-    'cancellation', 'no-show', 'cleaning', 'child-seat', 'loyalty',
-    'macro', 'checklist', 'general',
+    'deposit',
+    'late-return',
+    'fuel',
+    'mileage',
+    'cross-border',
+    'damage',
+    'accident',
+    'insurance',
+    'verification',
+    'availability',
+    'pricing',
+    'cancellation',
+    'no-show',
+    'cleaning',
+    'child-seat',
+    'loyalty',
+    'macro',
+    'checklist',
+    'general',
   ];
 
   // Fetch daily counts and intents for the period
@@ -25,28 +40,28 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     const dateStr = date.toISOString().slice(0, 10);
 
     promises.push(
-      env.KV.get(`analytics:daily:${dateStr}`).then(val => {
+      env.KV.get(`analytics:daily:${dateStr}`).then((val) => {
         const count = val ? parseInt(val, 10) : 0;
         dailyCounts.push({ date: dateStr, count });
-      })
+      }),
     );
 
     for (const intent of intents) {
       promises.push(
-        env.KV.get(`analytics:intent:${dateStr}:${intent}`).then(val => {
+        env.KV.get(`analytics:intent:${dateStr}:${intent}`).then((val) => {
           if (val) {
             intentCounts[intent] = (intentCounts[intent] || 0) + parseInt(val, 10);
           }
-        })
+        }),
       );
     }
 
     // Hourly counts (for heatmap)
     for (let h = 0; h < 24; h++) {
       promises.push(
-        env.KV.get(`analytics:hourly:${dateStr}:${h}`).then(val => {
+        env.KV.get(`analytics:hourly:${dateStr}:${h}`).then((val) => {
           if (val) hourlyCounts[h] += parseInt(val, 10);
-        })
+        }),
       );
     }
   }
@@ -63,33 +78,33 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     const dateStr = date.toISOString().slice(0, 10);
 
     feedbackPromises.push(
-      env.KV.get(`analytics:feedback:${dateStr}:up`).then(val => {
+      env.KV.get(`analytics:feedback:${dateStr}:up`).then((val) => {
         if (val) feedbackUp += parseInt(val, 10);
-      })
+      }),
     );
     feedbackPromises.push(
-      env.KV.get(`analytics:feedback:${dateStr}:down`).then(val => {
+      env.KV.get(`analytics:feedback:${dateStr}:down`).then((val) => {
         if (val) feedbackDown += parseInt(val, 10);
-      })
+      }),
     );
   }
   await Promise.all(feedbackPromises);
 
   // Knowledge gaps
   const gapList = await env.KV.list({ prefix: 'analytics:gap:', limit: 50 });
-  const gapPromises = gapList.keys.map(k =>
-    env.KV.get(k.name).then(val => {
+  const gapPromises = gapList.keys.map((k) =>
+    env.KV.get(k.name).then((val) => {
       if (val) knowledgeGaps.push(val);
-    })
+    }),
   );
   await Promise.all(gapPromises);
 
   // Staff metrics (per-user message counts)
   const staffMetrics: StaffMetric[] = [];
-  const userIndex = await env.KV.get('user:index', 'json') as string[] | null;
+  const userIndex = (await env.KV.get('user:index', 'json')) as string[] | null;
   if (userIndex) {
     const staffPromises = userIndex.map(async (userId) => {
-      const userData = await env.KV.get(`user:${userId}`, 'json') as any;
+      const userData = (await env.KV.get(`user:${userId}`, 'json')) as any;
       if (!userData) return;
       const msgCount = await env.KV.get(`analytics:staff:${userId}:messages`);
       const fbUp = await env.KV.get(`analytics:staff:${userId}:feedback:up`);
@@ -110,11 +125,16 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   // Knowledge effectiveness
-  const knowledgeEffectiveness: { noteId: string; title: string; citations: number; thumbsDown: number }[] = [];
-  const noteIndex = await env.KV.get('knowledge:index', 'json') as string[] | null;
+  const knowledgeEffectiveness: {
+    noteId: string;
+    title: string;
+    citations: number;
+    thumbsDown: number;
+  }[] = [];
+  const noteIndex = (await env.KV.get('knowledge:index', 'json')) as string[] | null;
   if (noteIndex) {
     const kePromises = noteIndex.map(async (noteId) => {
-      const note = await env.KV.get(`knowledge:${noteId}`, 'json') as any;
+      const note = (await env.KV.get(`knowledge:${noteId}`, 'json')) as any;
       const citCount = await env.KV.get(`analytics:knowledge:${noteId}:citations`);
       const tdCount = await env.KV.get(`analytics:knowledge:${noteId}:thumbsdown`);
       knowledgeEffectiveness.push({
@@ -128,21 +148,29 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   // Escalation SLA
-  const slaData: { total: number; breached: number; avgResponseMin: number } = { total: 0, breached: 0, avgResponseMin: 0 };
-  const escIndex = await env.KV.get('escalation:index', 'json') as string[] | null;
+  const slaData: { total: number; breached: number; avgResponseMin: number } = {
+    total: 0,
+    breached: 0,
+    avgResponseMin: 0,
+  };
+  const escIndex = (await env.KV.get('escalation:index', 'json')) as string[] | null;
   if (escIndex) {
     let totalResponseTime = 0;
     let responseCount = 0;
     for (const escId of escIndex.slice(-50)) {
-      const esc = await env.KV.get(`escalation:${escId}`, 'json') as any;
+      const esc = (await env.KV.get(`escalation:${escId}`, 'json')) as any;
       if (!esc) continue;
       slaData.total++;
       if (esc.status !== 'open' && esc.updatedAt && esc.createdAt) {
-        const responseTime = (new Date(esc.updatedAt).getTime() - new Date(esc.createdAt).getTime()) / 60000;
+        const responseTime =
+          (new Date(esc.updatedAt).getTime() - new Date(esc.createdAt).getTime()) / 60000;
         totalResponseTime += responseTime;
         responseCount++;
         // SLA breach: critical > 30 min, high > 60 min
-        if ((esc.priority === 'urgent' && responseTime > 30) || (esc.priority === 'high' && responseTime > 60)) {
+        if (
+          (esc.priority === 'urgent' && responseTime > 30) ||
+          (esc.priority === 'high' && responseTime > 60)
+        ) {
           slaData.breached++;
         }
       }

@@ -32,19 +32,19 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   // Summary stats
   const summary = {
     total: vehicles.length,
-    available: vehicles.filter(v => v.status === 'available').length,
-    rented: vehicles.filter(v => v.status === 'rented').length,
-    maintenance: vehicles.filter(v => v.status === 'maintenance').length,
-    cleaning: vehicles.filter(v => v.status === 'cleaning').length,
-    reserved: vehicles.filter(v => v.status === 'reserved').length,
-    damaged: vehicles.filter(v => v.status === 'damaged').length,
+    available: vehicles.filter((v) => v.status === 'available').length,
+    rented: vehicles.filter((v) => v.status === 'rented').length,
+    maintenance: vehicles.filter((v) => v.status === 'maintenance').length,
+    cleaning: vehicles.filter((v) => v.status === 'cleaning').length,
+    reserved: vehicles.filter((v) => v.status === 'reserved').length,
+    damaged: vehicles.filter((v) => v.status === 'damaged').length,
   };
 
   return new Response(JSON.stringify({ vehicles, summary }));
 };
 
 export const onRequestPut: PagesFunction<Env> = async (ctx) => {
-  const body = await ctx.request.json() as { id: string } & Partial<Vehicle>;
+  const body = (await ctx.request.json()) as { id: string } & Partial<Vehicle>;
   if (!body.id) return new Response(JSON.stringify({ error: 'id required' }), { status: 400 });
 
   const raw = await ctx.env.KV.get(`vehicle:${body.id}`);
@@ -66,8 +66,13 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
   if (oldStatus !== vehicle.status) {
     await ctx.env.KV.put(
       `webhook:event:${Date.now()}`,
-      JSON.stringify({ event: 'vehicle.status_changed', vehicleId: body.id, from: oldStatus, to: vehicle.status }),
-      { expirationTtl: 86400 }
+      JSON.stringify({
+        event: 'vehicle.status_changed',
+        vehicleId: body.id,
+        from: oldStatus,
+        to: vehicle.status,
+      }),
+      { expirationTtl: 86400 },
     );
   }
 

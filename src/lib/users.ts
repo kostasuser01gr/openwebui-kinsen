@@ -3,10 +3,10 @@ import { sha256, generateSessionId } from './crypto';
 
 // Permissions matrix: which roles can access which features
 const PERMISSIONS: Record<string, UserRole[]> = {
-  'chat': ['agent', 'supervisor', 'manager', 'admin'],
-  'macros': ['agent', 'supervisor', 'manager', 'admin'],
-  'checklists': ['agent', 'supervisor', 'manager', 'admin'],
-  'feedback': ['agent', 'supervisor', 'manager', 'admin'],
+  chat: ['agent', 'supervisor', 'manager', 'admin'],
+  macros: ['agent', 'supervisor', 'manager', 'admin'],
+  checklists: ['agent', 'supervisor', 'manager', 'admin'],
+  feedback: ['agent', 'supervisor', 'manager', 'admin'],
   'admin:knowledge:read': ['supervisor', 'manager', 'admin'],
   'admin:knowledge:write': ['manager', 'admin'],
   'admin:analytics': ['supervisor', 'manager', 'admin'],
@@ -39,7 +39,7 @@ export async function createUser(
   email: string,
   name: string,
   password: string,
-  role: UserRole = 'agent'
+  role: UserRole = 'agent',
 ): Promise<User> {
   const id = email.toLowerCase().replace(/[^a-z0-9]/g, '-');
   const passwordHash = await hashPassword(password);
@@ -56,7 +56,7 @@ export async function createUser(
   await env.KV.put(`user:${id}`, JSON.stringify(user));
 
   // Update user index
-  const index = await env.KV.get('user:index', 'json') as string[] | null;
+  const index = (await env.KV.get('user:index', 'json')) as string[] | null;
   const ids = index || [];
   if (!ids.includes(id)) {
     ids.push(id);
@@ -76,9 +76,9 @@ export async function getUserByEmail(env: Env, email: string): Promise<User | nu
 }
 
 export async function getAllUsers(env: Env): Promise<User[]> {
-  const index = await env.KV.get('user:index', 'json') as string[] | null;
+  const index = (await env.KV.get('user:index', 'json')) as string[] | null;
   if (!index || index.length === 0) return [];
-  const users = await Promise.all(index.map(id => getUserById(env, id)));
+  const users = await Promise.all(index.map((id) => getUserById(env, id)));
   return users.filter(Boolean) as User[];
 }
 
@@ -86,7 +86,7 @@ export async function loginUser(
   env: Env,
   email: string,
   password: string,
-  ip: string
+  ip: string,
 ): Promise<{ session: UserSession; token: string } | null> {
   const user = await getUserByEmail(env, email);
   if (!user || !user.active) return null;

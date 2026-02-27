@@ -24,14 +24,18 @@ export function KnowledgeTab() {
     try {
       const res = await fetch('/api/admin/knowledge', { credentials: 'include' });
       if (res.ok) {
-        const data = await res.json() as KnowledgeNote[];
+        const data = (await res.json()) as KnowledgeNote[];
         setNotes(data);
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     setLoading(false);
   };
 
-  useEffect(() => { fetchNotes(); }, []);
+  useEffect(() => {
+    fetchNotes();
+  }, []);
 
   const saveNote = async (note: KnowledgeNote) => {
     setSaving(true);
@@ -49,7 +53,7 @@ export function KnowledgeTab() {
         setCreating(false);
         fetchNotes();
       } else {
-        const data = await res.json() as { error: string };
+        const data = (await res.json()) as { error: string };
         setMessage(`Error: ${data.error}`);
       }
     } catch {
@@ -66,7 +70,9 @@ export function KnowledgeTab() {
       fetchNotes();
       setMessage('Note deleted');
       setTimeout(() => setMessage(''), 3000);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   const seedAll = async () => {
@@ -78,10 +84,12 @@ export function KnowledgeTab() {
         credentials: 'include',
         body: '{}',
       });
-      const data = await res.json() as { seeded: number };
+      const data = (await res.json()) as { seeded: number };
       setMessage(`Seeded ${data.seeded} notes`);
       fetchNotes();
-    } catch { setMessage('Seed failed'); }
+    } catch {
+      setMessage('Seed failed');
+    }
     setSaving(false);
     setTimeout(() => setMessage(''), 3000);
   };
@@ -90,18 +98,31 @@ export function KnowledgeTab() {
     window.open('/api/admin/export', '_blank');
   };
 
-  const filtered = notes.filter(n =>
-    n.title.toLowerCase().includes(filter.toLowerCase()) ||
-    n.category.toLowerCase().includes(filter.toLowerCase()) ||
-    n.keywords.some(k => k.toLowerCase().includes(filter.toLowerCase()))
+  const filtered = notes.filter(
+    (n) =>
+      n.title.toLowerCase().includes(filter.toLowerCase()) ||
+      n.category.toLowerCase().includes(filter.toLowerCase()) ||
+      n.keywords.some((k) => k.toLowerCase().includes(filter.toLowerCase())),
   );
 
   if (editing || creating) {
     return (
       <NoteEditor
-        note={editing || { id: '', title: '', category: 'operations', keywords: [], content: '', updatedAt: '' }}
+        note={
+          editing || {
+            id: '',
+            title: '',
+            category: 'operations',
+            keywords: [],
+            content: '',
+            updatedAt: '',
+          }
+        }
         onSave={saveNote}
-        onCancel={() => { setEditing(null); setCreating(false); }}
+        onCancel={() => {
+          setEditing(null);
+          setCreating(false);
+        }}
         saving={saving}
         isNew={creating}
       />
@@ -115,13 +136,19 @@ export function KnowledgeTab() {
           type="text"
           placeholder="Search notes…"
           value={filter}
-          onChange={e => setFilter(e.target.value)}
+          onChange={(e) => setFilter(e.target.value)}
           className="panel-search"
         />
         <div className="toolbar-actions">
-          <button className="btn-secondary" onClick={() => setCreating(true)}>+ New Note</button>
-          <button className="btn-secondary" onClick={seedAll} disabled={saving}>🌱 Re-seed All</button>
-          <button className="btn-secondary" onClick={exportBackup}>⬇ Export</button>
+          <button className="btn-secondary" onClick={() => setCreating(true)}>
+            + New Note
+          </button>
+          <button className="btn-secondary" onClick={seedAll} disabled={saving}>
+            🌱 Re-seed All
+          </button>
+          <button className="btn-secondary" onClick={exportBackup}>
+            ⬇ Export
+          </button>
         </div>
       </div>
 
@@ -131,7 +158,7 @@ export function KnowledgeTab() {
         <div className="tab-loading">Loading…</div>
       ) : (
         <div className="notes-grid">
-          {filtered.map(note => (
+          {filtered.map((note) => (
             <div key={note.id} className="note-card">
               <div className="note-card-header">
                 <h4>{note.title}</h4>
@@ -139,15 +166,25 @@ export function KnowledgeTab() {
               </div>
               <p className="note-preview">{note.content.slice(0, 120)}…</p>
               <div className="note-meta">
-                <span>{note.keywords.length} keywords · Updated {note.updatedAt}</span>
+                <span>
+                  {note.keywords.length} keywords · Updated {note.updatedAt}
+                </span>
                 <div className="note-actions">
-                  <button className="btn-sm" onClick={() => setEditing(note)}>Edit</button>
-                  <button className="btn-sm btn-danger" onClick={() => deleteNote(note.id)}>Delete</button>
+                  <button className="btn-sm" onClick={() => setEditing(note)}>
+                    Edit
+                  </button>
+                  <button className="btn-sm btn-danger" onClick={() => deleteNote(note.id)}>
+                    Delete
+                  </button>
                 </div>
               </div>
             </div>
           ))}
-          {filtered.length === 0 && <p className="empty-state">No notes found. Click "New Note" or "Re-seed All" to get started.</p>}
+          {filtered.length === 0 && (
+            <p className="empty-state">
+              No notes found. Click "New Note" or "Re-seed All" to get started.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -173,7 +210,10 @@ function NoteEditor({
   const handleSave = () => {
     onSave({
       ...form,
-      keywords: keywordsText.split(',').map(k => k.trim()).filter(Boolean),
+      keywords: keywordsText
+        .split(',')
+        .map((k) => k.trim())
+        .filter(Boolean),
     });
   };
 
@@ -181,7 +221,9 @@ function NoteEditor({
     <div className="note-editor">
       <div className="panel-header">
         <h3>{isNew ? 'Create Note' : 'Edit Note'}</h3>
-        <button className="icon-btn" onClick={onCancel}>✕</button>
+        <button className="icon-btn" onClick={onCancel}>
+          ✕
+        </button>
       </div>
 
       <div className="editor-form">
@@ -191,14 +233,17 @@ function NoteEditor({
             <input
               type="text"
               value={form.id}
-              onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, id: e.target.value }))}
               disabled={!isNew}
               placeholder="e.g., deposit-rules"
             />
           </div>
           <div className="form-field">
             <label>Category</label>
-            <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+            <select
+              value={form.category}
+              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+            >
               <option value="billing">Billing</option>
               <option value="operations">Operations</option>
               <option value="sales">Sales</option>
@@ -214,7 +259,7 @@ function NoteEditor({
           <input
             type="text"
             value={form.title}
-            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
             placeholder="Note title"
           />
         </div>
@@ -224,7 +269,7 @@ function NoteEditor({
           <input
             type="text"
             value={keywordsText}
-            onChange={e => setKeywordsText(e.target.value)}
+            onChange={(e) => setKeywordsText(e.target.value)}
             placeholder="deposit, hold, credit card, …"
           />
         </div>
@@ -233,15 +278,21 @@ function NoteEditor({
           <label>Content (Markdown)</label>
           <textarea
             value={form.content}
-            onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
             rows={15}
             placeholder="Write policy content in Markdown…"
           />
         </div>
 
         <div className="editor-actions">
-          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
-          <button className="btn-primary" onClick={handleSave} disabled={saving || !form.id || !form.title}>
+          <button className="btn-secondary" onClick={onCancel}>
+            Cancel
+          </button>
+          <button
+            className="btn-primary"
+            onClick={handleSave}
+            disabled={saving || !form.id || !form.title}
+          >
             {saving ? 'Saving…' : isNew ? 'Create Note' : 'Update Note'}
           </button>
         </div>

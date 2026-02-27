@@ -22,7 +22,13 @@ interface DamageEntry {
 interface MaintenanceEntry {
   id: string;
   vehicleId: string;
-  type: 'oil_change' | 'tire_rotation' | 'inspection' | 'brake_service' | 'filter_change' | 'general';
+  type:
+    | 'oil_change'
+    | 'tire_rotation'
+    | 'inspection'
+    | 'brake_service'
+    | 'filter_change'
+    | 'general';
   description: string;
   scheduledAt: string;
   completedAt?: string;
@@ -40,43 +46,45 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const type = url.searchParams.get('type') || 'damage'; // damage | maintenance
 
   if (type === 'maintenance') {
-    const index = await env.KV.get('maintenance:index', 'json') as string[] | null;
+    const index = (await env.KV.get('maintenance:index', 'json')) as string[] | null;
     if (!index) return Response.json([]);
 
     const entries = await Promise.all(
-      index.map(id => env.KV.get(`maintenance:${id}`, 'json') as Promise<MaintenanceEntry | null>)
+      index.map(
+        (id) => env.KV.get(`maintenance:${id}`, 'json') as Promise<MaintenanceEntry | null>,
+      ),
     );
 
     let results = entries.filter(Boolean) as MaintenanceEntry[];
-    if (vehicleId) results = results.filter(e => e.vehicleId === vehicleId);
+    if (vehicleId) results = results.filter((e) => e.vehicleId === vehicleId);
 
     // Check for overdue entries
     const now = new Date().toISOString();
-    results = results.map(e => ({
+    results = results.map((e) => ({
       ...e,
-      status: e.status === 'completed' ? 'completed' :
-        (e.scheduledAt < now ? 'overdue' : 'scheduled'),
+      status:
+        e.status === 'completed' ? 'completed' : e.scheduledAt < now ? 'overdue' : 'scheduled',
     }));
 
     return Response.json(results.sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)));
   }
 
   // Default: damage log
-  const index = await env.KV.get('damage:index', 'json') as string[] | null;
+  const index = (await env.KV.get('damage:index', 'json')) as string[] | null;
   if (!index) return Response.json([]);
 
   const entries = await Promise.all(
-    index.map(id => env.KV.get(`damage:${id}`, 'json') as Promise<DamageEntry | null>)
+    index.map((id) => env.KV.get(`damage:${id}`, 'json') as Promise<DamageEntry | null>),
   );
 
   let results = entries.filter(Boolean) as DamageEntry[];
-  if (vehicleId) results = results.filter(e => e.vehicleId === vehicleId);
+  if (vehicleId) results = results.filter((e) => e.vehicleId === vehicleId);
 
   return Response.json(results.sort((a, b) => b.reportedAt.localeCompare(a.reportedAt)));
 };
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) => {
-  const body = await request.json() as any;
+  const body = (await request.json()) as any;
   const user = (data as any).user || {};
   const type = body.type || 'damage';
 
@@ -94,10 +102,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
       notes: body.notes,
     };
 
-    const index = (await env.KV.get('maintenance:index', 'json') as string[]) || [];
+    const index = ((await env.KV.get('maintenance:index', 'json')) as string[]) || [];
     index.push(entry.id);
     await env.KV.put('maintenance:index', JSON.stringify(index));
-    await env.KV.put(`maintenance:${entry.id}`, JSON.stringify(entry), { expirationTtl: 86400 * 365 });
+    await env.KV.put(`maintenance:${entry.id}`, JSON.stringify(entry), {
+      expirationTtl: 86400 * 365,
+    });
 
     return Response.json(entry, { status: 201 });
   }
@@ -118,7 +128,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     reportedAt: new Date().toISOString(),
   };
 
-  const index = (await env.KV.get('damage:index', 'json') as string[]) || [];
+  const index = ((await env.KV.get('damage:index', 'json')) as string[]) || [];
   index.push(entry.id);
   await env.KV.put('damage:index', JSON.stringify(index));
   await env.KV.put(`damage:${entry.id}`, JSON.stringify(entry), { expirationTtl: 86400 * 365 });
@@ -127,11 +137,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
 };
 
 export const onRequestPut: PagesFunction<Env> = async ({ request, env }) => {
-  const body = await request.json() as any;
+  const body = (await request.json()) as any;
   const { id, type } = body;
 
   if (type === 'maintenance') {
-    const entry = await env.KV.get(`maintenance:${id}`, 'json') as MaintenanceEntry | null;
+    const entry = (await env.KV.get(`maintenance:${id}`, 'json')) as MaintenanceEntry | null;
     if (!entry) return Response.json({ error: 'Not found' }, { status: 404 });
 
     if (body.status) entry.status = body.status;
@@ -145,7 +155,7 @@ export const onRequestPut: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   // Update damage entry
-  const entry = await env.KV.get(`damage:${id}`, 'json') as DamageEntry | null;
+  const entry = (await env.KV.get(`damage:${id}`, 'json')) as DamageEntry | null;
   if (!entry) return Response.json({ error: 'Not found' }, { status: 404 });
 
   if (body.repairStatus) entry.repairStatus = body.repairStatus;

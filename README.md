@@ -9,6 +9,7 @@ Full-featured internal chat & operations hub for car rental staff. Ask questions
 ## ✨ Features
 
 ### Core Chat
+
 - **TF-IDF Knowledge Retrieval** — weighted term frequency-inverse document frequency scoring across 16+ car rental SOP documents
 - **Fuzzy Matching** — Levenshtein distance matching (edit distance ≤ 2) recovers misspelled queries
 - **Query Rewriting** — auto-expands 15+ car rental abbreviations (CDW, SCDW, TP, PAI, LDW, GPS, SUV, MPV, EV, etc.) and strips stop words
@@ -21,6 +22,7 @@ Full-featured internal chat & operations hub for car rental staff. Ask questions
 - **BYO AI (Optional)** — plug in any OpenAI-compatible API behind a feature flag (disabled by default)
 
 ### Macros & Calculators
+
 - **Late Return Fee Calculator** — input hours late + daily rate → get exact charge
 - **Fuel Charge Calculator** — missing litres/kWh → refueling cost
 - **Mileage Overage Calculator** — km driven vs included → excess charge
@@ -30,6 +32,7 @@ Full-featured internal chat & operations hub for car rental staff. Ask questions
 - **Upsell Script Generator** — insurance upsell with objection handling
 
 ### Operational Checklists
+
 - **Vehicle Pickup** (18 items) — document verification, walk-around, photos
 - **Vehicle Return** (15 items) — inspection, fuel, damage, charges
 - **Accident Response** (12 items) — safety, photos, towing, insurance claim
@@ -38,6 +41,7 @@ Full-featured internal chat & operations hub for car rental staff. Ask questions
 - Progress tracking with required vs optional items, saved per rental ID
 
 ### 🆕 Guided Workflows (v3)
+
 - **Damage Claim** (9 steps) — branching logic for minor/major damage, insurance involvement
 - **New Rental Walkthrough** (7 steps) — customer info, vehicle selection, upsell, checklist
 - **Refund Processing** (4 steps) — reason, approval, amount, confirmation
@@ -45,64 +49,76 @@ Full-featured internal chat & operations hub for car rental staff. Ask questions
 - Multi-step wizard with input, choice, checklist, and info step types
 
 ### 🆕 Vehicle Status Board (v3)
+
 - **Fleet Dashboard** — grid view of all vehicles with status filters
 - **Summary Cards** — instant counts: available, rented, reserved, maintenance, cleaning, damaged
 - **Inline Status Edit** — click to update vehicle status directly from the board
 - **Filter & Search** — by status, class, or plate number
 
 ### 🆕 Customer Lookup (v3)
+
 - **Quick Search** — search customers by name, email, phone, or license
 - **Booking History** — view all bookings for a customer with status and details
 - **Insert to Chat** — inject customer/booking context into the current conversation
 
 ### 🆕 Email Generator (v3)
+
 - **5 Templates** — late return, damage notification, booking confirmation, cancellation, refund
 - **Slot-filling** — fill in variables (customer name, dates, amounts) from template
 - **Live Preview** — see rendered email before copying
 - **One-click Copy** — copy to clipboard for paste into email client
 
 ### 🆕 Escalation System (v3)
+
 - **Create Escalations** — from any chat with priority (low/medium/high/critical)
 - **Supervisor Queue** — escalation list visible to supervisors+
 - **Claim & Resolve** — supervisors can claim and close escalations
 - **Notification Dispatch** — auto-notify relevant roles on new escalations
 
 ### 🆕 Notification Center (v3)
+
 - **Bell Icon Badge** — unread count always visible
 - **Role-aware Notifications** — escalations, workflow completions, knowledge updates
 - **Mark Read/All Read** — click to dismiss or bulk clear
 
 ### 🆕 Command Palette (v3)
+
 - **⌘K Universal Search** — search across actions, knowledge notes, macros, recent searches
 - **Quick Navigation** — jump to any panel, toggle dark mode, start new chat
 - **Keyboard-first** — arrow keys + enter for selection
 
 ### 🆕 Feature Flags Admin (v3)
+
 - **13 Feature Flags** — toggle features on/off (OpenAI, voice input, workflows, etc.)
 - **Instant Toggle** — flip switches with immediate effect
 - **Reset to Defaults** — one-click restore default configuration
 
 ### 🆕 Webhook System (v3)
+
 - **CRUD Webhooks** — register external endpoints for event notifications
 - **Event Types** — chat.message, escalation.created, workflow.completed, knowledge.updated
 
 ### 🆕 Knowledge Versioning (v3)
+
 - **Version History** — every edit creates a timestamped snapshot
 - **Rollback** — restore any previous version of a knowledge note
 - **Audit Trail** — who edited what and when
 
 ### 🆕 PWA + Offline (v3)
+
 - **Progressive Web App** — installable on mobile and desktop
 - **Service Worker** — cache-first for static assets, network-first for API
 - **Offline Fallback** — graceful degradation when offline
 - **IndexedDB Cache** — knowledge notes cached locally for offline search
 
 ### 🆕 Multi-language (v3)
+
 - **i18n Framework** — English + Greek built-in
 - **60+ Translated Strings** — UI labels, buttons, placeholders
 - **LocalStorage Persistence** — language preference remembered
 
 ### 🆕 Chat UX Upgrades (v4)
+
 - **Split-pane Citation Reader** — click any citation to view full knowledge note in a side panel
 - **Toast Notification System** — non-blocking toasts replace all alerts (auto-dismiss, max 5 visible)
 - **Error Boundaries** — each major panel has its own error boundary with "Try Again" recovery
@@ -114,6 +130,7 @@ Full-featured internal chat & operations hub for car rental staff. Ask questions
 - **Auto-suggest Typeahead** — 200ms debounced suggestions from note titles + recent searches + 20 common queries
 
 ### 🆕 Advanced Retrieval (v4)
+
 - **TF-IDF Scoring Engine** — document term vectors with weighted text (title 3×, keywords 4×, content 1×, category 2×)
 - **Smoothed IDF** — `log((N+1)/(1+df)) + 1` formula for robust term importance
 - **Fuzzy Matching** — full Levenshtein distance (edit distance ≤ 2, tokens ≥ 4 chars)
@@ -122,6 +139,7 @@ Full-featured internal chat & operations hub for car rental staff. Ask questions
 - **Composite Answers** — synthesize from multiple matching documents
 
 ### 🆕 Operations & Analytics (v4)
+
 - **Staff Performance Dashboard** — per-user message counts, satisfaction scores, escalation rates
 - **Usage Heatmap** — hour × day activity grid showing peak usage times
 - **SLA Tracking** — urgent (30 min) and high (60 min) escalation breach monitoring
@@ -132,6 +150,7 @@ Full-featured internal chat & operations hub for car rental staff. Ask questions
 - **Tabbed Analytics** — 4-tab view: Overview, Staff, Knowledge, Heatmap
 
 ### 🆕 Security Hardening (v4)
+
 - **Session Management UI** — view all active sessions, revoke individual or all other sessions
 - **Password Policies** — configurable min length, uppercase/lowercase/number/special requirements
 - **Structured Error Codes** — 17 error codes (UNAUTHORIZED, RATE_LIMITED, TOTP_REQUIRED, etc.) with consistent JSON format
@@ -140,6 +159,7 @@ Full-featured internal chat & operations hub for car rental staff. Ask questions
 - **Knowledge Citation Tracking** — automatic citation counter incremented per chat response
 
 ### 🆕 Integration Upgrades (v4)
+
 - **Webhook v2 with HMAC Signing** — SHA-256 signed payloads, 3× retry with exponential backoff
 - **Webhook Delivery Log** — last 100 deliveries per webhook with status, timing, errors
 - **Auto-disable Webhooks** — 10 consecutive failures → automatic deactivation
@@ -150,6 +170,7 @@ Full-featured internal chat & operations hub for car rental staff. Ask questions
 - **Markdown Parser** — `## Heading` sections become notes with optional `category:` and `keywords:` metadata
 
 ### Security & Auth
+
 - **Dual-mode Authentication** — shared passcode OR individual email+password login
 - **Role-Based Access Control (RBAC)** — Agent, Supervisor, Manager, Admin with granular permissions
 - **Session Management** — HttpOnly cookies, 24h expiry, KV-backed sessions
@@ -159,6 +180,7 @@ Full-featured internal chat & operations hub for car rental staff. Ask questions
 - **Audit Logging** — all API requests logged with user, IP, timestamp (30-day retention)
 
 ### Admin Dashboard
+
 - **Knowledge Management** — create, edit, delete notes with markdown editor, search/filter, version history
 - **Analytics Dashboard** — daily message volume chart, top intents, satisfaction rate, knowledge gaps
 - **User Management** — create accounts, assign roles, activate/deactivate
@@ -168,6 +190,7 @@ Full-featured internal chat & operations hub for car rental staff. Ask questions
 - **Bulk Seed** — seeds knowledge notes, customers, bookings, vehicles, feature flags
 
 ### Frontend UX
+
 - **Dark Mode** — toggle with localStorage persistence
 - **Feedback Buttons** — 👍/👎 on each answer, tracked in analytics
 - **Keyboard Shortcuts** — ⌘K command palette, ↑ edit last, ⌘⇧M macros, Esc clear
@@ -179,6 +202,7 @@ Full-featured internal chat & operations hub for car rental staff. Ask questions
 - **Mobile-responsive** — full side panel overlay on small screens
 
 ### DevOps
+
 - **GitHub Actions CI/CD** — lint → test → build → deploy on push to main
 - **Preview Deployments** — Cloudflare Pages auto-generates preview URLs for PRs
 
@@ -186,12 +210,12 @@ Full-featured internal chat & operations hub for car rental staff. Ask questions
 
 ## 📋 Prerequisites
 
-| Tool | Version | Install |
-|------|---------|---------|
-| Node.js | ≥ 18 | [nodejs.org](https://nodejs.org) |
-| npm | ≥ 9 | Comes with Node.js |
-| GitHub CLI | ≥ 2.x | `brew install gh` then `gh auth login` |
-| Wrangler CLI | ≥ 3.x | `npm i -g wrangler` then `wrangler login` |
+| Tool         | Version | Install                                   |
+| ------------ | ------- | ----------------------------------------- |
+| Node.js      | ≥ 18    | [nodejs.org](https://nodejs.org)          |
+| npm          | ≥ 9     | Comes with Node.js                        |
+| GitHub CLI   | ≥ 2.x   | `brew install gh` then `gh auth login`    |
+| Wrangler CLI | ≥ 3.x   | `npm i -g wrangler` then `wrangler login` |
 
 ---
 
@@ -252,84 +276,85 @@ npx wrangler pages dev dist --kv KV --port 8788  # Pages Functions on :8788
 
 ## 📡 API Reference
 
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/api/health` | None | Health check + feature flags |
-| POST | `/api/auth` | None | Login (passcode or email+password) |
-| POST | `/api/chat` | Session | Send message, get response + citations + follow-ups |
-| POST | `/api/feedback` | Session | Submit 👍/👎 feedback |
-| GET | `/api/macros` | Session | List macro templates |
-| POST | `/api/macros` | Session | Execute a macro with variables |
-| GET | `/api/checklists` | Session | List checklist templates |
-| POST | `/api/checklists` | Session | Save checklist instance |
-| GET | `/api/sessions` | Session | List/get chat sessions |
-| GET | `/api/customers` | Session | Search customers + bookings |
-| POST | `/api/customers` | Session | Seed sample customer data |
-| GET | `/api/vehicles` | Session | List vehicles with filters + summary |
-| PUT | `/api/vehicles` | Session | Update vehicle status |
-| POST | `/api/vehicles` | Session | Seed sample vehicle data |
-| GET | `/api/workflows` | Session | List workflow templates/instances |
-| POST | `/api/workflows` | Session | Start/advance/abandon workflow instance |
-| POST | `/api/escalations` | Session | Create new escalation |
-| GET | `/api/escalations` | Supervisor+ | List escalations |
-| PUT | `/api/escalations` | Supervisor+ | Claim/resolve escalation |
-| GET | `/api/email` | Session | List email templates |
-| POST | `/api/email` | Session | Generate email from template |
-| GET | `/api/notifications` | Session | Get notifications (role-aware) |
-| POST | `/api/notifications` | Session | Mark read / mark all read |
-| GET | `/api/preferences` | Session | Get user preferences |
-| PUT | `/api/preferences` | Session | Save user preferences |
-| GET | `/api/admin/knowledge` | Supervisor+ | List knowledge notes |
-| POST | `/api/admin/knowledge` | Manager+ | Create note |
-| PUT | `/api/admin/knowledge` | Manager+ | Update note (with version snapshot) |
-| DELETE | `/api/admin/knowledge?id=` | Manager+ | Delete note |
-| GET | `/api/admin/versions?noteId=` | Supervisor+ | List knowledge versions |
-| POST | `/api/admin/versions` | Manager+ | Rollback to specific version |
-| POST | `/api/admin/seed` | Admin | Seed all data (notes, customers, vehicles, flags) |
-| GET | `/api/admin/analytics?days=30` | Supervisor+ | Analytics summary |
-| GET | `/api/admin/users` | Manager+ | List users |
-| POST | `/api/admin/users` | Admin | Create user |
-| PUT | `/api/admin/users` | Admin | Update user role/status |
-| GET | `/api/admin/flags` | Admin | List feature flags |
-| PUT | `/api/admin/flags` | Admin | Toggle feature flag |
-| POST | `/api/admin/flags` | Admin | Reset flags to defaults |
-| GET | `/api/admin/webhooks` | Admin | List webhooks |
-| GET | `/api/admin/webhooks?log={id}` | Admin | View webhook delivery log |
-| POST | `/api/admin/webhooks` | Admin | Create/update/delete webhook |
-| POST | `/api/admin/import` | Manager+ | Bulk import knowledge (CSV/Markdown/JSON) |
-| GET | `/api/admin/api-keys` | Admin | List API keys |
-| POST | `/api/admin/api-keys` | Admin | Create API key |
-| DELETE | `/api/admin/api-keys?id=` | Admin | Revoke API key |
-| GET | `/api/suggest?q=` | Session | Auto-suggest typeahead |
-| GET | `/api/fleet?type=damage` | Session | List damage entries |
-| POST | `/api/fleet` | Session | Create damage/maintenance entry |
-| PUT | `/api/fleet` | Session | Update damage/maintenance entry |
-| GET | `/api/user-sessions` | Session | List active sessions |
-| DELETE | `/api/user-sessions?token=` | Session | Revoke session(s) |
-| GET | `/api/admin/export` | Manager+ | Full KV backup JSON |
-| GET | `/api/admin/audit?limit=100` | Admin | Audit log entries |
+| Method | Endpoint                       | Auth        | Description                                         |
+| ------ | ------------------------------ | ----------- | --------------------------------------------------- |
+| GET    | `/api/health`                  | None        | Health check + feature flags                        |
+| POST   | `/api/auth`                    | None        | Login (passcode or email+password)                  |
+| POST   | `/api/chat`                    | Session     | Send message, get response + citations + follow-ups |
+| POST   | `/api/feedback`                | Session     | Submit 👍/👎 feedback                               |
+| GET    | `/api/macros`                  | Session     | List macro templates                                |
+| POST   | `/api/macros`                  | Session     | Execute a macro with variables                      |
+| GET    | `/api/checklists`              | Session     | List checklist templates                            |
+| POST   | `/api/checklists`              | Session     | Save checklist instance                             |
+| GET    | `/api/sessions`                | Session     | List/get chat sessions                              |
+| GET    | `/api/customers`               | Session     | Search customers + bookings                         |
+| POST   | `/api/customers`               | Session     | Seed sample customer data                           |
+| GET    | `/api/vehicles`                | Session     | List vehicles with filters + summary                |
+| PUT    | `/api/vehicles`                | Session     | Update vehicle status                               |
+| POST   | `/api/vehicles`                | Session     | Seed sample vehicle data                            |
+| GET    | `/api/workflows`               | Session     | List workflow templates/instances                   |
+| POST   | `/api/workflows`               | Session     | Start/advance/abandon workflow instance             |
+| POST   | `/api/escalations`             | Session     | Create new escalation                               |
+| GET    | `/api/escalations`             | Supervisor+ | List escalations                                    |
+| PUT    | `/api/escalations`             | Supervisor+ | Claim/resolve escalation                            |
+| GET    | `/api/email`                   | Session     | List email templates                                |
+| POST   | `/api/email`                   | Session     | Generate email from template                        |
+| GET    | `/api/notifications`           | Session     | Get notifications (role-aware)                      |
+| POST   | `/api/notifications`           | Session     | Mark read / mark all read                           |
+| GET    | `/api/preferences`             | Session     | Get user preferences                                |
+| PUT    | `/api/preferences`             | Session     | Save user preferences                               |
+| GET    | `/api/admin/knowledge`         | Supervisor+ | List knowledge notes                                |
+| POST   | `/api/admin/knowledge`         | Manager+    | Create note                                         |
+| PUT    | `/api/admin/knowledge`         | Manager+    | Update note (with version snapshot)                 |
+| DELETE | `/api/admin/knowledge?id=`     | Manager+    | Delete note                                         |
+| GET    | `/api/admin/versions?noteId=`  | Supervisor+ | List knowledge versions                             |
+| POST   | `/api/admin/versions`          | Manager+    | Rollback to specific version                        |
+| POST   | `/api/admin/seed`              | Admin       | Seed all data (notes, customers, vehicles, flags)   |
+| GET    | `/api/admin/analytics?days=30` | Supervisor+ | Analytics summary                                   |
+| GET    | `/api/admin/users`             | Manager+    | List users                                          |
+| POST   | `/api/admin/users`             | Admin       | Create user                                         |
+| PUT    | `/api/admin/users`             | Admin       | Update user role/status                             |
+| GET    | `/api/admin/flags`             | Admin       | List feature flags                                  |
+| PUT    | `/api/admin/flags`             | Admin       | Toggle feature flag                                 |
+| POST   | `/api/admin/flags`             | Admin       | Reset flags to defaults                             |
+| GET    | `/api/admin/webhooks`          | Admin       | List webhooks                                       |
+| GET    | `/api/admin/webhooks?log={id}` | Admin       | View webhook delivery log                           |
+| POST   | `/api/admin/webhooks`          | Admin       | Create/update/delete webhook                        |
+| POST   | `/api/admin/import`            | Manager+    | Bulk import knowledge (CSV/Markdown/JSON)           |
+| GET    | `/api/admin/api-keys`          | Admin       | List API keys                                       |
+| POST   | `/api/admin/api-keys`          | Admin       | Create API key                                      |
+| DELETE | `/api/admin/api-keys?id=`      | Admin       | Revoke API key                                      |
+| GET    | `/api/suggest?q=`              | Session     | Auto-suggest typeahead                              |
+| GET    | `/api/fleet?type=damage`       | Session     | List damage entries                                 |
+| POST   | `/api/fleet`                   | Session     | Create damage/maintenance entry                     |
+| PUT    | `/api/fleet`                   | Session     | Update damage/maintenance entry                     |
+| GET    | `/api/user-sessions`           | Session     | List active sessions                                |
+| DELETE | `/api/user-sessions?token=`    | Session     | Revoke session(s)                                   |
+| GET    | `/api/admin/export`            | Manager+    | Full KV backup JSON                                 |
+| GET    | `/api/admin/audit?limit=100`   | Admin       | Audit log entries                                   |
 
 ---
 
 ## 🔐 RBAC Permissions
 
-| Permission | Agent | Supervisor | Manager | Admin |
-|------------|:-----:|:----------:|:-------:|:-----:|
-| Chat, Macros, Checklists, Feedback | ✅ | ✅ | ✅ | ✅ |
-| View Knowledge Base | ❌ | ✅ | ✅ | ✅ |
-| Edit Knowledge Base | ❌ | ❌ | ✅ | ✅ |
-| View Analytics | ❌ | ✅ | ✅ | ✅ |
-| View Users | ❌ | ❌ | ✅ | ✅ |
-| Manage Users | ❌ | ❌ | ❌ | ✅ |
-| Export Data | ❌ | ❌ | ✅ | ✅ |
-| Audit Log | ❌ | ❌ | ❌ | ✅ |
-| Seed / Settings | ❌ | ❌ | ❌ | ✅ |
+| Permission                         | Agent | Supervisor | Manager | Admin |
+| ---------------------------------- | :---: | :--------: | :-----: | :---: |
+| Chat, Macros, Checklists, Feedback |  ✅   |     ✅     |   ✅    |  ✅   |
+| View Knowledge Base                |  ❌   |     ✅     |   ✅    |  ✅   |
+| Edit Knowledge Base                |  ❌   |     ❌     |   ✅    |  ✅   |
+| View Analytics                     |  ❌   |     ✅     |   ✅    |  ✅   |
+| View Users                         |  ❌   |     ❌     |   ✅    |  ✅   |
+| Manage Users                       |  ❌   |     ❌     |   ❌    |  ✅   |
+| Export Data                        |  ❌   |     ❌     |   ✅    |  ✅   |
+| Audit Log                          |  ❌   |     ❌     |   ❌    |  ✅   |
+| Seed / Settings                    |  ❌   |     ❌     |   ❌    |  ✅   |
 
 ---
 
 ## 🔧 SOPs
 
 ### Rotating the Staff Passcode
+
 ```bash
 NEW_HASH=$(echo -n "newPasscode2025" | shasum -a 256 | awk '{print $1}')
 echo "$NEW_HASH" | wrangler pages secret put PASSCODE_HASH --project-name kinsen-chat
@@ -337,6 +362,7 @@ npm run deploy
 ```
 
 ### Creating an Admin User
+
 ```bash
 curl -X POST https://kinsen-chat.pages.dev/api/admin/users \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
@@ -345,12 +371,14 @@ curl -X POST https://kinsen-chat.pages.dev/api/admin/users \
 ```
 
 ### Exporting KV Backup
+
 ```bash
 curl -s https://kinsen-chat.pages.dev/api/admin/export \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" > backup-$(date +%Y%m%d).json
 ```
 
 ### Rollback
+
 ```bash
 wrangler pages deployment list --project-name kinsen-chat
 wrangler pages deployment rollback --project-name kinsen-chat <deployment-id>
@@ -460,50 +488,50 @@ kinsen-chat/
 
 ## 📊 KV Schema
 
-| Key Pattern | Value | TTL |
-|-------------|-------|-----|
-| `knowledge:index` | `string[]` | Permanent |
-| `knowledge:{id}` | `KnowledgeNote` | Permanent |
-| `knowledge:versions:{noteId}` | Version list | Permanent |
-| `knowledge:version:{noteId}:{ver}` | Version snapshot | 365 days |
-| `user:index` | `string[]` | Permanent |
-| `user:{id}` | `User` | Permanent |
-| `session:{token}` | `UserSession` | 24h |
-| `chat:{sessionId}` | `ChatMessage[]` | 7 days |
-| `checklist:{templateId}:{rentalId}` | `ChecklistInstance` | 90 days |
-| `feedback:{timestamp}` | `Feedback` | 90 days |
-| `ratelimit:{ip}:{window}` | Count | 2 min |
-| `brute:{ip}` | Count | 15 min |
-| `audit:{timestamp}` | Audit entry | 30 days |
-| `analytics:daily:{date}` | Count | 90 days |
-| `analytics:intent:{date}:{intent}` | Count | 90 days |
-| `analytics:feedback:{date}:{rating}` | Count | 90 days |
-| `analytics:gap:{date}:{ts}` | Query text | 30 days |
-| `customer:{id}` | `Customer` | Permanent |
-| `customer:index` | `string[]` | Permanent |
-| `booking:{id}` | `Booking` | Permanent |
-| `booking:index` | `string[]` | Permanent |
-| `vehicle:{id}` | `Vehicle` | Permanent |
-| `vehicle:index` | `string[]` | Permanent |
-| `escalation:{id}` | `Escalation` | 90 days |
-| `escalation:index` | `string[]` | Permanent |
-| `workflow:{instanceId}` | `WorkflowInstance` | 30 days |
-| `notification:{userId}:{id}` | `Notification` | 30 days |
-| `preferences:{userId}` | `UserPreferences` | Permanent |
-| `feature:flags` | `FeatureFlag[]` | Permanent |
-| `webhook:{id}` | `Webhook` | Permanent |
-| `webhook:index` | `string[]` | Permanent |
-| `webhook:log:{id}` | Delivery log array | 30 days |
-| `analytics:staff:{userId}:messages` | Count | 90 days |
-| `analytics:staff:{userId}:feedback:up` | Count | 90 days |
-| `analytics:staff:{userId}:feedback:down` | Count | 90 days |
-| `analytics:staff:{userId}:escalations` | Count | 90 days |
-| `analytics:hourly:{date}:{hour}` | Count | 90 days |
-| `analytics:knowledge:{noteId}:citations` | Count | 90 days |
-| `analytics:knowledge:{noteId}:thumbsdown` | Count | 90 days |
-| `damage:index` | `string[]` | 365 days |
-| `damage:{id}` | Damage entry | 365 days |
-| `maintenance:index` | `string[]` | 365 days |
-| `maintenance:{id}` | Maintenance entry | 365 days |
-| `apikey:index` | `string[]` | Permanent |
-| `apikey:{id}` | API key metadata + hash | Permanent |
+| Key Pattern                               | Value                   | TTL       |
+| ----------------------------------------- | ----------------------- | --------- |
+| `knowledge:index`                         | `string[]`              | Permanent |
+| `knowledge:{id}`                          | `KnowledgeNote`         | Permanent |
+| `knowledge:versions:{noteId}`             | Version list            | Permanent |
+| `knowledge:version:{noteId}:{ver}`        | Version snapshot        | 365 days  |
+| `user:index`                              | `string[]`              | Permanent |
+| `user:{id}`                               | `User`                  | Permanent |
+| `session:{token}`                         | `UserSession`           | 24h       |
+| `chat:{sessionId}`                        | `ChatMessage[]`         | 7 days    |
+| `checklist:{templateId}:{rentalId}`       | `ChecklistInstance`     | 90 days   |
+| `feedback:{timestamp}`                    | `Feedback`              | 90 days   |
+| `ratelimit:{ip}:{window}`                 | Count                   | 2 min     |
+| `brute:{ip}`                              | Count                   | 15 min    |
+| `audit:{timestamp}`                       | Audit entry             | 30 days   |
+| `analytics:daily:{date}`                  | Count                   | 90 days   |
+| `analytics:intent:{date}:{intent}`        | Count                   | 90 days   |
+| `analytics:feedback:{date}:{rating}`      | Count                   | 90 days   |
+| `analytics:gap:{date}:{ts}`               | Query text              | 30 days   |
+| `customer:{id}`                           | `Customer`              | Permanent |
+| `customer:index`                          | `string[]`              | Permanent |
+| `booking:{id}`                            | `Booking`               | Permanent |
+| `booking:index`                           | `string[]`              | Permanent |
+| `vehicle:{id}`                            | `Vehicle`               | Permanent |
+| `vehicle:index`                           | `string[]`              | Permanent |
+| `escalation:{id}`                         | `Escalation`            | 90 days   |
+| `escalation:index`                        | `string[]`              | Permanent |
+| `workflow:{instanceId}`                   | `WorkflowInstance`      | 30 days   |
+| `notification:{userId}:{id}`              | `Notification`          | 30 days   |
+| `preferences:{userId}`                    | `UserPreferences`       | Permanent |
+| `feature:flags`                           | `FeatureFlag[]`         | Permanent |
+| `webhook:{id}`                            | `Webhook`               | Permanent |
+| `webhook:index`                           | `string[]`              | Permanent |
+| `webhook:log:{id}`                        | Delivery log array      | 30 days   |
+| `analytics:staff:{userId}:messages`       | Count                   | 90 days   |
+| `analytics:staff:{userId}:feedback:up`    | Count                   | 90 days   |
+| `analytics:staff:{userId}:feedback:down`  | Count                   | 90 days   |
+| `analytics:staff:{userId}:escalations`    | Count                   | 90 days   |
+| `analytics:hourly:{date}:{hour}`          | Count                   | 90 days   |
+| `analytics:knowledge:{noteId}:citations`  | Count                   | 90 days   |
+| `analytics:knowledge:{noteId}:thumbsdown` | Count                   | 90 days   |
+| `damage:index`                            | `string[]`              | 365 days  |
+| `damage:{id}`                             | Damage entry            | 365 days  |
+| `maintenance:index`                       | `string[]`              | 365 days  |
+| `maintenance:{id}`                        | Maintenance entry       | 365 days  |
+| `apikey:index`                            | `string[]`              | Permanent |
+| `apikey:{id}`                             | API key metadata + hash | Permanent |

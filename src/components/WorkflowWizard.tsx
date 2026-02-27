@@ -6,7 +6,9 @@ interface WorkflowWizardProps {
 }
 
 export default function WorkflowWizard({ onClose }: WorkflowWizardProps) {
-  const [templates, setTemplates] = useState<{ id: string; title: string; description: string; category: string; stepsCount: number }[]>([]);
+  const [templates, setTemplates] = useState<
+    { id: string; title: string; description: string; category: string; stepsCount: number }[]
+  >([]);
   const [instance, setInstance] = useState<WorkflowInstance | null>(null);
   const [template, setTemplate] = useState<WorkflowTemplate | null>(null);
   const [currentStep, setCurrentStep] = useState<WorkflowStep | null>(null);
@@ -14,17 +16,21 @@ export default function WorkflowWizard({ onClose }: WorkflowWizardProps) {
   const [checklistState, setChecklistState] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadTemplates(); }, []);
+  useEffect(() => {
+    loadTemplates();
+  }, []);
 
   const loadTemplates = async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/workflows', { credentials: 'include' });
       if (res.ok) {
-        const data = await res.json() as { templates: typeof templates };
+        const data = (await res.json()) as { templates: typeof templates };
         setTemplates(data.templates);
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     setLoading(false);
   };
 
@@ -36,10 +42,10 @@ export default function WorkflowWizard({ onClose }: WorkflowWizardProps) {
       body: JSON.stringify({ action: 'start', templateId }),
     });
     if (res.ok) {
-      const data = await res.json() as { instance: WorkflowInstance; template: WorkflowTemplate };
+      const data = (await res.json()) as { instance: WorkflowInstance; template: WorkflowTemplate };
       setInstance(data.instance);
       setTemplate(data.template);
-      const step = data.template.steps.find(s => s.id === data.instance.currentStepId);
+      const step = data.template.steps.find((s) => s.id === data.instance.currentStepId);
       setCurrentStep(step || null);
       setFormData({});
       setChecklistState({});
@@ -60,13 +66,13 @@ export default function WorkflowWizard({ onClose }: WorkflowWizardProps) {
       }),
     });
     if (res.ok) {
-      const data = await res.json() as { instance: WorkflowInstance; template: WorkflowTemplate };
+      const data = (await res.json()) as { instance: WorkflowInstance; template: WorkflowTemplate };
       setInstance(data.instance);
       setTemplate(data.template);
       if (data.instance.status === 'completed') {
         setCurrentStep(null);
       } else {
-        const step = data.template.steps.find(s => s.id === data.instance.currentStepId);
+        const step = data.template.steps.find((s) => s.id === data.instance.currentStepId);
         setCurrentStep(step || null);
       }
       setFormData({});
@@ -93,12 +99,20 @@ export default function WorkflowWizard({ onClose }: WorkflowWizardProps) {
       <div className="side-panel workflow-panel">
         <div className="side-panel-header">
           <h3>📋 Guided Workflows</h3>
-          <button className="btn-small" onClick={onClose}>✕</button>
+          <button className="btn-small" onClick={onClose}>
+            ✕
+          </button>
         </div>
-        {loading ? <div className="loading-text">Loading...</div> : (
+        {loading ? (
+          <div className="loading-text">Loading...</div>
+        ) : (
           <div className="workflow-template-list">
-            {templates.map(t => (
-              <div key={t.id} className="workflow-template-card" onClick={() => startWorkflow(t.id)}>
+            {templates.map((t) => (
+              <div
+                key={t.id}
+                className="workflow-template-card"
+                onClick={() => startWorkflow(t.id)}
+              >
                 <div className="workflow-template-title">{t.title}</div>
                 <div className="workflow-template-desc">{t.description}</div>
                 <div className="workflow-template-meta">
@@ -119,7 +133,9 @@ export default function WorkflowWizard({ onClose }: WorkflowWizardProps) {
       <div className="side-panel workflow-panel">
         <div className="side-panel-header">
           <h3>📋 {template?.title}</h3>
-          <button className="btn-small" onClick={onClose}>✕</button>
+          <button className="btn-small" onClick={onClose}>
+            ✕
+          </button>
         </div>
         <div className="workflow-completed">
           <div className="workflow-completed-icon">✅</div>
@@ -128,7 +144,13 @@ export default function WorkflowWizard({ onClose }: WorkflowWizardProps) {
           <div className="workflow-completed-summary">
             <strong>Steps completed:</strong> {instance.completedSteps.length}
           </div>
-          <button className="btn-primary" onClick={() => { setInstance(null); setTemplate(null); }}>
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setInstance(null);
+              setTemplate(null);
+            }}
+          >
             Start Another Workflow
           </button>
         </div>
@@ -145,7 +167,9 @@ export default function WorkflowWizard({ onClose }: WorkflowWizardProps) {
     <div className="side-panel workflow-panel">
       <div className="side-panel-header">
         <h3>📋 {template?.title}</h3>
-        <button className="btn-small" onClick={onClose}>✕</button>
+        <button className="btn-small" onClick={onClose}>
+          ✕
+        </button>
       </div>
 
       {/* Progress */}
@@ -153,7 +177,9 @@ export default function WorkflowWizard({ onClose }: WorkflowWizardProps) {
         <div className="workflow-progress-bar">
           <div className="workflow-progress-fill" style={{ width: `${progress}%` }} />
         </div>
-        <div className="workflow-progress-text">Step {completedCount + 1} of {totalSteps} ({progress}%)</div>
+        <div className="workflow-progress-text">
+          Step {completedCount + 1} of {totalSteps} ({progress}%)
+        </div>
       </div>
 
       {currentStep && (
@@ -164,28 +190,34 @@ export default function WorkflowWizard({ onClose }: WorkflowWizardProps) {
           {/* Input fields */}
           {currentStep.type === 'input' && currentStep.fields && (
             <div className="workflow-fields">
-              {currentStep.fields.map(field => (
+              {currentStep.fields.map((field) => (
                 <div key={field.name} className="workflow-field">
-                  <label>{field.label} {field.required && <span className="required">*</span>}</label>
+                  <label>
+                    {field.label} {field.required && <span className="required">*</span>}
+                  </label>
                   {field.type === 'textarea' ? (
                     <textarea
                       value={formData[field.name] || ''}
-                      onChange={e => setFormData({ ...formData, [field.name]: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
                       rows={3}
                     />
                   ) : field.type === 'select' ? (
                     <select
                       value={formData[field.name] || ''}
-                      onChange={e => setFormData({ ...formData, [field.name]: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
                     >
                       <option value="">Select...</option>
-                      {field.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                      {field.options?.map((o) => (
+                        <option key={o} value={o}>
+                          {o}
+                        </option>
+                      ))}
                     </select>
                   ) : (
                     <input
                       type={field.type}
                       value={formData[field.name] || ''}
-                      onChange={e => setFormData({ ...formData, [field.name]: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
                     />
                   )}
                 </div>
@@ -199,7 +231,7 @@ export default function WorkflowWizard({ onClose }: WorkflowWizardProps) {
           {/* Choice/branching */}
           {currentStep.type === 'choice' && currentStep.choices && (
             <div className="workflow-choices">
-              {currentStep.choices.map(choice => (
+              {currentStep.choices.map((choice) => (
                 <button
                   key={choice.nextStepId}
                   className="workflow-choice-btn"
@@ -219,7 +251,9 @@ export default function WorkflowWizard({ onClose }: WorkflowWizardProps) {
                   <input
                     type="checkbox"
                     checked={checklistState[`item-${i}`] || false}
-                    onChange={e => setChecklistState({ ...checklistState, [`item-${i}`]: e.target.checked })}
+                    onChange={(e) =>
+                      setChecklistState({ ...checklistState, [`item-${i}`]: e.target.checked })
+                    }
                   />
                   <span>{item}</span>
                 </label>
@@ -240,7 +274,9 @@ export default function WorkflowWizard({ onClose }: WorkflowWizardProps) {
       )}
 
       <div className="workflow-actions">
-        <button className="btn-secondary" onClick={abandonWorkflow}>Abandon Workflow</button>
+        <button className="btn-secondary" onClick={abandonWorkflow}>
+          Abandon Workflow
+        </button>
       </div>
     </div>
   );

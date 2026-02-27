@@ -5,7 +5,16 @@ export const SEED_NOTES: KnowledgeNote[] = [
     id: 'deposit-rules',
     title: 'Deposit & Hold Rules',
     category: 'billing',
-    keywords: ['deposit', 'hold', 'credit card', 'authorization', 'block', 'preauth', 'security deposit', 'refund deposit'],
+    keywords: [
+      'deposit',
+      'hold',
+      'credit card',
+      'authorization',
+      'block',
+      'preauth',
+      'security deposit',
+      'refund deposit',
+    ],
     relatedNotes: ['customer-verification', 'damage-procedure', 'cancellation-policy'],
     content: `## Deposit & Hold Policy
 - A credit card authorization hold is placed at pickup:
@@ -22,7 +31,15 @@ export const SEED_NOTES: KnowledgeNote[] = [
     id: 'late-return',
     title: 'Late Return Policy',
     category: 'operations',
-    keywords: ['late', 'return', 'overdue', 'grace period', 'extra day', 'late fee', 'delayed return'],
+    keywords: [
+      'late',
+      'return',
+      'overdue',
+      'grace period',
+      'extra day',
+      'late fee',
+      'delayed return',
+    ],
     relatedNotes: ['fuel-policy', 'cleaning-fee', 'no-show'],
     content: `## Late Return Policy
 - Grace period: 29 minutes after scheduled return time.
@@ -66,7 +83,15 @@ export const SEED_NOTES: KnowledgeNote[] = [
     id: 'cross-border',
     title: 'Cross-Border & One-Way Rentals',
     category: 'operations',
-    keywords: ['cross-border', 'country', 'international', 'one-way', 'drop-off', 'different location', 'border'],
+    keywords: [
+      'cross-border',
+      'country',
+      'international',
+      'one-way',
+      'drop-off',
+      'different location',
+      'border',
+    ],
     relatedNotes: ['upsell-insurance', 'mileage-policy', 'deposit-rules'],
     content: `## Cross-Border & One-Way Policy
 - Cross-border travel allowed to: EU countries, UK, Switzerland, Norway.
@@ -82,7 +107,17 @@ export const SEED_NOTES: KnowledgeNote[] = [
     id: 'damage-procedure',
     title: 'Damage Inspection & Reporting Procedure',
     category: 'operations',
-    keywords: ['damage', 'scratch', 'dent', 'inspection', 'report', 'body', 'windshield', 'tire', 'check'],
+    keywords: [
+      'damage',
+      'scratch',
+      'dent',
+      'inspection',
+      'report',
+      'body',
+      'windshield',
+      'tire',
+      'check',
+    ],
     relatedNotes: ['accident-workflow', 'upsell-insurance', 'deposit-rules'],
     content: `## Damage Procedure
 1. Walk-around inspection at pickup with customer present; both sign checklist.
@@ -101,7 +136,16 @@ export const SEED_NOTES: KnowledgeNote[] = [
     id: 'accident-workflow',
     title: 'Accident & Emergency Workflow',
     category: 'safety',
-    keywords: ['accident', 'crash', 'collision', 'emergency', 'police', 'tow', 'breakdown', 'roadside'],
+    keywords: [
+      'accident',
+      'crash',
+      'collision',
+      'emergency',
+      'police',
+      'tow',
+      'breakdown',
+      'roadside',
+    ],
     relatedNotes: ['damage-procedure', 'upsell-insurance'],
     content: `## Accident & Emergency Workflow
 1. Ensure safety of all parties; call 112 if injuries.
@@ -120,7 +164,18 @@ export const SEED_NOTES: KnowledgeNote[] = [
     id: 'upsell-insurance',
     title: 'Upsell Script — Insurance & Protection Packages',
     category: 'sales',
-    keywords: ['upsell', 'insurance', 'CDW', 'SCDW', 'theft', 'protection', 'coverage', 'waiver', 'package', 'sell'],
+    keywords: [
+      'upsell',
+      'insurance',
+      'CDW',
+      'SCDW',
+      'theft',
+      'protection',
+      'coverage',
+      'waiver',
+      'package',
+      'sell',
+    ],
     relatedNotes: ['damage-procedure', 'deposit-rules', 'loyalty-program'],
     content: `## Upsell Script: Insurance Packages
 **At counter, after confirming reservation:**
@@ -142,7 +197,17 @@ export const SEED_NOTES: KnowledgeNote[] = [
     id: 'customer-verification',
     title: 'Customer Verification Checklist',
     category: 'compliance',
-    keywords: ['verification', 'ID', 'license', 'driving licence', 'passport', 'age', 'check', 'identity', 'document'],
+    keywords: [
+      'verification',
+      'ID',
+      'license',
+      'driving licence',
+      'passport',
+      'age',
+      'check',
+      'identity',
+      'document',
+    ],
     relatedNotes: ['deposit-rules', 'cross-border'],
     content: `## Customer Verification Checklist
 At pickup, verify ALL of the following:
@@ -160,7 +225,17 @@ At pickup, verify ALL of the following:
     id: 'fleet-availability',
     title: 'Fleet Availability Response Template',
     category: 'sales',
-    keywords: ['availability', 'fleet', 'available', 'car', 'vehicle', 'book', 'reservation', 'class', 'group'],
+    keywords: [
+      'availability',
+      'fleet',
+      'available',
+      'car',
+      'vehicle',
+      'book',
+      'reservation',
+      'class',
+      'group',
+    ],
     relatedNotes: ['pricing-exception', 'upsell-insurance'],
     content: `## Fleet Availability Response Template
 When a customer asks about availability, use this template:
@@ -185,7 +260,17 @@ Unfortunately, [GROUP] is fully booked for those dates. However, I can offer:
     id: 'pricing-exception',
     title: 'Pricing Exception & Discount Approval Flow',
     category: 'billing',
-    keywords: ['pricing', 'discount', 'exception', 'approval', 'override', 'rate', 'negotiation', 'corporate', 'coupon'],
+    keywords: [
+      'pricing',
+      'discount',
+      'exception',
+      'approval',
+      'override',
+      'rate',
+      'negotiation',
+      'corporate',
+      'coupon',
+    ],
     relatedNotes: ['cancellation-policy', 'loyalty-program', 'fleet-availability'],
     content: `## Pricing Exception Approval Flow
 - Agents may apply up to 10% discount without approval.
@@ -237,7 +322,19 @@ Unfortunately, [GROUP] is fully booked for those dates. However, I can offer:
     id: 'cleaning-fee',
     title: 'Cleaning & Condition Fee Schedule',
     category: 'operations',
-    keywords: ['cleaning', 'dirty', 'smoke', 'smoking', 'pet', 'animal', 'hair', 'stain', 'interior', 'fee', 'clean'],
+    keywords: [
+      'cleaning',
+      'dirty',
+      'smoke',
+      'smoking',
+      'pet',
+      'animal',
+      'hair',
+      'stain',
+      'interior',
+      'fee',
+      'clean',
+    ],
     relatedNotes: ['damage-procedure', 'late-return'],
     content: `## Cleaning & Condition Fee Schedule
 - Standard cleaning: included (normal wear).
@@ -256,7 +353,18 @@ Unfortunately, [GROUP] is fully booked for those dates. However, I can offer:
     id: 'child-seat',
     title: 'Child Seat & Accessories Policy',
     category: 'operations',
-    keywords: ['child seat', 'baby seat', 'booster', 'infant', 'child', 'accessory', 'GPS', 'navigation', 'wifi', 'extra'],
+    keywords: [
+      'child seat',
+      'baby seat',
+      'booster',
+      'infant',
+      'child',
+      'accessory',
+      'GPS',
+      'navigation',
+      'wifi',
+      'extra',
+    ],
     relatedNotes: ['customer-verification', 'fleet-availability'],
     content: `## Child Seat & Accessories
 **Child Seats (EU law requires for children under 135cm):**
@@ -281,7 +389,17 @@ Unfortunately, [GROUP] is fully booked for those dates. However, I can offer:
     id: 'loyalty-program',
     title: 'Kinsen Loyalty Program Tiers',
     category: 'sales',
-    keywords: ['loyalty', 'rewards', 'points', 'gold', 'platinum', 'member', 'frequent', 'tier', 'VIP'],
+    keywords: [
+      'loyalty',
+      'rewards',
+      'points',
+      'gold',
+      'platinum',
+      'member',
+      'frequent',
+      'tier',
+      'VIP',
+    ],
     relatedNotes: ['pricing-exception', 'upsell-insurance', 'cancellation-policy'],
     content: `## Kinsen Loyalty Program
 **Tiers:**

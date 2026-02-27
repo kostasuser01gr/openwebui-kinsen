@@ -25,7 +25,7 @@ describe('i18n', () => {
   it('has English and Greek available', () => {
     const locales = getAvailableLocales();
     expect(locales).toHaveLength(2);
-    expect(locales.find(l => l.code === 'en')).toBeDefined();
-    expect(locales.find(l => l.code === 'el')).toBeDefined();
+    expect(locales.find((l) => l.code === 'en')).toBeDefined();
+    expect(locales.find((l) => l.code === 'el')).toBeDefined();
   });
 });

@@ -1,10 +1,16 @@
 import type { Env, KnowledgeNote, ChatMessage, ChatResponse } from '../../src/lib/types';
-import { retrieveNotes, buildResponse, buildContextualQuery, generateFollowups, detectIntent } from '../../src/lib/retrieval';
+import {
+  retrieveNotes,
+  buildResponse,
+  buildContextualQuery,
+  generateFollowups,
+  detectIntent,
+} from '../../src/lib/retrieval';
 import { parseCookies, generateSessionId } from '../../src/lib/crypto';
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
-    const { message, sessionId: clientSessionId } = await request.json() as {
+    const { message, sessionId: clientSessionId } = (await request.json()) as {
       message: string;
       sessionId?: string;
     };
@@ -21,18 +27,18 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     // --- Chat history for context ---
     const chatSessionId = clientSessionId || generateSessionId();
     const historyKey = `chat:${chatSessionId}`;
-    const existingHistory = await env.KV.get(historyKey, 'json') as ChatMessage[] | null;
+    const existingHistory = (await env.KV.get(historyKey, 'json')) as ChatMessage[] | null;
     const history = existingHistory || [];
 
     // --- Build context-aware query using conversation history ---
     const contextualQuery = buildContextualQuery(trimmedMessage, history, 3);
 
     // --- Retrieve knowledge notes from KV ---
-    const noteIndex = await env.KV.get('knowledge:index', 'json') as string[] | null;
+    const noteIndex = (await env.KV.get('knowledge:index', 'json')) as string[] | null;
     const notes: KnowledgeNote[] = [];
 
     if (noteIndex && noteIndex.length > 0) {
-      const notePromises = noteIndex.map(id => env.KV.get(`knowledge:${id}`, 'json'));
+      const notePromises = noteIndex.map((id) => env.KV.get(`knowledge:${id}`, 'json'));
       const noteResults = await Promise.all(notePromises);
       for (const n of noteResults) {
         if (n) notes.push(n as KnowledgeNote);
@@ -47,7 +53,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
     if (env.OPENAI_ENABLED === 'true' && env.OPENAI_API_KEY && env.OPENAI_BASE_URL) {
       try {
-        reply = await callOpenAI(env, trimmedMessage, scoredNotes.map(s => s.note), history);
+        reply = await callOpenAI(
+          env,
+          trimmedMessage,
+          scoredNotes.map((s) => s.note),
+          history,
+        );
       } catch {
         reply = buildResponse(trimmedMessage, scoredNotes);
       }
@@ -55,7 +66,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       reply = buildResponse(trimmedMessage, scoredNotes);
     }
 
-    const citations = scoredNotes.map(s => ({ id: s.note.id, title: s.note.title }));
+    const citations = scoredNotes.map((s) => ({ id: s.note.id, title: s.note.title }));
     const confidence = scoredNotes.length > 0 ? scoredNotes[0].confidence : 'low';
 
     // --- Generate follow-up suggestions ---
@@ -67,7 +78,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     history.push({
       role: 'assistant',
       content: reply,
-      citations: citations.map(c => c.id),
+      citations: citations.map((c) => c.id),
       suggestedFollowups,
       timestamp: now,
     });
@@ -101,13 +112,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const cookie = request.headers.get('Cookie') || '';
     const sessionToken = cookie.match(/kinsen_session=([^;]+)/)?.[1] || '';
     if (sessionToken) {
-      const sess = await env.KV.get(`session:${sessionToken}`, 'json') as any;
+      const sess = (await env.KV.get(`session:${sessionToken}`, 'json')) as any;
       if (sess?.userId) {
         const staffMsgKey = `analytics:staff:${sess.userId}:messages`;
         const staffMsgCount = await env.KV.get(staffMsgKey);
-        await env.KV.put(staffMsgKey, String((staffMsgCount ? parseInt(staffMsgCount, 10) : 0) + 1), {
-          expirationTtl: 86400 * 90,
-        });
+        await env.KV.put(
+          staffMsgKey,
+          String((staffMsgCount ? parseInt(staffMsgCount, 10) : 0) + 1),
+          {
+            expirationTtl: 86400 * 90,
+          },
+        );
       }
     }
 
@@ -128,7 +143,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       });
     }
 
-    const response: ChatResponse = { reply, citations, sessionId: chatSessionId, suggestedFollowups, confidence };
+    const response: ChatResponse = {
+      reply,
+      citations,
+      sessionId: chatSessionId,
+      suggestedFollowups,
+      confidence,
+    };
 
     return new Response(JSON.stringify(response), {
       status: 200,
@@ -146,17 +167,15 @@ async function callOpenAI(
   env: Env,
   userMessage: string,
   contextNotes: KnowledgeNote[],
-  history: ChatMessage[] = []
+  history: ChatMessage[] = [],
 ): Promise<string> {
   const systemPrompt = `You are Kinsen, an internal assistant for a car rental company. Answer staff questions using ONLY the provided knowledge base context. Be concise and professional. If the context doesn't cover the question, say so.
 
 Context:
-${contextNotes.map(n => `[${n.title}]\n${n.content}`).join('\n\n---\n\n')}`;
+${contextNotes.map((n) => `[${n.title}]\n${n.content}`).join('\n\n---\n\n')}`;
 
   // Include recent conversation history for multi-turn context
-  const messages: { role: string; content: string }[] = [
-    { role: 'system', content: systemPrompt },
-  ];
+  const messages: { role: string; content: string }[] = [{ role: 'system', content: systemPrompt }];
 
   const recentHistory = history.slice(-6); // last 3 turns
   for (const msg of recentHistory) {
@@ -179,6 +198,6 @@ ${contextNotes.map(n => `[${n.title}]\n${n.content}`).join('\n\n---\n\n')}`;
   });
 
   if (!res.ok) throw new Error(`OpenAI API error: ${res.status}`);
-  const data = await res.json() as any;
+  const data = (await res.json()) as any;
   return data.choices?.[0]?.message?.content || 'No response from AI.';
 }

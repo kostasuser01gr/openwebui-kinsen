@@ -7,11 +7,81 @@ interface EmailGeneratorProps {
 }
 
 const TEMPLATES = [
-  { id: 'late-return', label: '⏰ Late Return Reminder', fields: ['customerName', 'vehiclePlate', 'vehicleClass', 'scheduledTime', 'scheduledDate', 'branch', 'dailyRate', 'agentName'] },
-  { id: 'damage-notification', label: '⚠️ Damage Notification', fields: ['customerName', 'vehiclePlate', 'bookingId', 'damageDescription', 'damageLocation', 'estimatedCost', 'insurancePackage', 'customerCharge', 'agentName'] },
-  { id: 'booking-confirmation', label: '✅ Booking Confirmation', fields: ['customerName', 'bookingId', 'vehicleClass', 'pickupDate', 'pickupBranch', 'returnDate', 'returnBranch', 'dailyRate', 'insurancePackage', 'extras', 'totalAmount', 'depositAmount', 'agentName'] },
-  { id: 'cancellation-confirmation', label: '❌ Cancellation Confirmation', fields: ['customerName', 'bookingId', 'pickupDate', 'pickupBranch', 'vehicleClass', 'cancellationFee', 'refundAmount', 'agentName'] },
-  { id: 'refund-confirmation', label: '💰 Refund Confirmation', fields: ['customerName', 'bookingId', 'refundAmount', 'refundReason', 'cardLast4', 'refundReference', 'agentName'] },
+  {
+    id: 'late-return',
+    label: '⏰ Late Return Reminder',
+    fields: [
+      'customerName',
+      'vehiclePlate',
+      'vehicleClass',
+      'scheduledTime',
+      'scheduledDate',
+      'branch',
+      'dailyRate',
+      'agentName',
+    ],
+  },
+  {
+    id: 'damage-notification',
+    label: '⚠️ Damage Notification',
+    fields: [
+      'customerName',
+      'vehiclePlate',
+      'bookingId',
+      'damageDescription',
+      'damageLocation',
+      'estimatedCost',
+      'insurancePackage',
+      'customerCharge',
+      'agentName',
+    ],
+  },
+  {
+    id: 'booking-confirmation',
+    label: '✅ Booking Confirmation',
+    fields: [
+      'customerName',
+      'bookingId',
+      'vehicleClass',
+      'pickupDate',
+      'pickupBranch',
+      'returnDate',
+      'returnBranch',
+      'dailyRate',
+      'insurancePackage',
+      'extras',
+      'totalAmount',
+      'depositAmount',
+      'agentName',
+    ],
+  },
+  {
+    id: 'cancellation-confirmation',
+    label: '❌ Cancellation Confirmation',
+    fields: [
+      'customerName',
+      'bookingId',
+      'pickupDate',
+      'pickupBranch',
+      'vehicleClass',
+      'cancellationFee',
+      'refundAmount',
+      'agentName',
+    ],
+  },
+  {
+    id: 'refund-confirmation',
+    label: '💰 Refund Confirmation',
+    fields: [
+      'customerName',
+      'bookingId',
+      'refundAmount',
+      'refundReason',
+      'cardLast4',
+      'refundReference',
+      'agentName',
+    ],
+  },
 ];
 
 export default function EmailGenerator({ onClose, chatContext }: EmailGeneratorProps) {
@@ -21,7 +91,7 @@ export default function EmailGenerator({ onClose, chatContext }: EmailGeneratorP
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const template = TEMPLATES.find(t => t.id === selectedTemplate);
+  const template = TEMPLATES.find((t) => t.id === selectedTemplate);
 
   const generate = async () => {
     if (!selectedTemplate) return;
@@ -33,8 +103,10 @@ export default function EmailGenerator({ onClose, chatContext }: EmailGeneratorP
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ template: selectedTemplate, variables }),
       });
-      if (res.ok) setGenerated(await res.json() as GeneratedEmail);
-    } catch { /* ignore */ }
+      if (res.ok) setGenerated((await res.json()) as GeneratedEmail);
+    } catch {
+      /* ignore */
+    }
     setLoading(false);
   };
 
@@ -47,34 +119,46 @@ export default function EmailGenerator({ onClose, chatContext }: EmailGeneratorP
   };
 
   const formatLabel = (field: string) =>
-    field.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+    field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
 
   return (
     <div className="side-panel email-generator-panel">
       <div className="side-panel-header">
         <h3>✉️ Email Generator</h3>
-        <button className="btn-small" onClick={onClose}>✕</button>
+        <button className="btn-small" onClick={onClose}>
+          ✕
+        </button>
       </div>
 
       {!generated ? (
         <>
           <div className="email-template-select">
             <label>Choose Template</label>
-            <select value={selectedTemplate} onChange={e => { setSelectedTemplate(e.target.value); setVariables({}); }}>
+            <select
+              value={selectedTemplate}
+              onChange={(e) => {
+                setSelectedTemplate(e.target.value);
+                setVariables({});
+              }}
+            >
               <option value="">Select a template...</option>
-              {TEMPLATES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+              {TEMPLATES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
             </select>
           </div>
 
           {template && (
             <div className="email-fields">
-              {template.fields.map(field => (
+              {template.fields.map((field) => (
                 <div key={field} className="email-field">
                   <label>{formatLabel(field)}</label>
                   <input
                     type="text"
                     value={variables[field] || ''}
-                    onChange={e => setVariables({ ...variables, [field]: e.target.value })}
+                    onChange={(e) => setVariables({ ...variables, [field]: e.target.value })}
                     placeholder={formatLabel(field)}
                   />
                 </div>
@@ -93,8 +177,14 @@ export default function EmailGenerator({ onClose, chatContext }: EmailGeneratorP
       ) : (
         <div className="email-preview">
           <div className="email-preview-header">
-            {generated.to && <div><strong>To:</strong> {generated.to}</div>}
-            <div><strong>Subject:</strong> {generated.subject}</div>
+            {generated.to && (
+              <div>
+                <strong>To:</strong> {generated.to}
+              </div>
+            )}
+            <div>
+              <strong>Subject:</strong> {generated.subject}
+            </div>
           </div>
           <div className="email-preview-body">
             <pre>{generated.body}</pre>
@@ -103,8 +193,19 @@ export default function EmailGenerator({ onClose, chatContext }: EmailGeneratorP
             <button className="btn-primary" onClick={copyToClipboard}>
               {copied ? '✅ Copied!' : '📋 Copy to Clipboard'}
             </button>
-            <button className="btn-secondary" onClick={() => setGenerated(null)}>← Edit</button>
-            <button className="btn-secondary" onClick={() => { setGenerated(null); setSelectedTemplate(''); setVariables({}); }}>New Email</button>
+            <button className="btn-secondary" onClick={() => setGenerated(null)}>
+              ← Edit
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                setGenerated(null);
+                setSelectedTemplate('');
+                setVariables({});
+              }}
+            >
+              New Email
+            </button>
           </div>
         </div>
       )}

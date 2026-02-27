@@ -201,7 +201,13 @@ export interface Booking {
 }
 
 // ── Vehicles ────────────────────────────────────────────────
-export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'cleaning' | 'reserved' | 'damaged';
+export type VehicleStatus =
+  | 'available'
+  | 'rented'
+  | 'maintenance'
+  | 'cleaning'
+  | 'reserved'
+  | 'damaged';
 
 export interface Vehicle {
   id: string;
@@ -246,8 +252,14 @@ export interface FeatureFlag {
 }
 
 // ── Webhooks ────────────────────────────────────────────────
-export type WebhookEvent = 'chat.message' | 'escalation.created' | 'escalation.resolved' |
-  'feedback.submitted' | 'knowledge.updated' | 'checklist.completed' | 'vehicle.status_changed';
+export type WebhookEvent =
+  | 'chat.message'
+  | 'escalation.created'
+  | 'escalation.resolved'
+  | 'feedback.submitted'
+  | 'knowledge.updated'
+  | 'checklist.completed'
+  | 'vehicle.status_changed';
 
 export interface Webhook {
   id: string;

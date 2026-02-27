@@ -6,7 +6,13 @@ import WorkflowWizard from './WorkflowWizard';
 import CustomerLookup from './CustomerLookup';
 import EmailGenerator from './EmailGenerator';
 import EscalationPanel from './EscalationPanel';
-import { CitationReader, MessageSearch, SavedReplies, AutoSuggest, ErrorBoundary } from './ChatExtras';
+import {
+  CitationReader,
+  MessageSearch,
+  SavedReplies,
+  AutoSuggest,
+  ErrorBoundary,
+} from './ChatExtras';
 import { useToast } from './ChatExtras';
 import type { UserPreferences } from '../lib/types';
 
@@ -37,6 +43,7 @@ interface Props {
   user: UserInfo | null;
   darkMode: boolean;
   onToggleDark: () => void;
+  onLogout?: () => void;
   onOpenAdmin?: () => void;
   notificationBell?: ReactNode;
   onOpenVehicles?: () => void;
@@ -47,12 +54,31 @@ interface Props {
   onUpdatePreferences?: (prefs: UserPreferences) => void;
 }
 
-type SidePanel = 'none' | 'macros' | 'checklists' | 'workflows' | 'customers' | 'email' | 'escalations' | 'citation' | 'search' | 'saved-replies';
+type SidePanel =
+  | 'none'
+  | 'macros'
+  | 'checklists'
+  | 'workflows'
+  | 'customers'
+  | 'email'
+  | 'escalations'
+  | 'citation'
+  | 'search'
+  | 'saved-replies';
 
 export function ChatWindow({
-  user, darkMode, onToggleDark, onOpenAdmin, notificationBell,
-  onOpenVehicles, onOpenCommandPalette, pendingAction, onActionConsumed,
-  preferences, onUpdatePreferences,
+  user,
+  darkMode,
+  onToggleDark,
+  onLogout,
+  onOpenAdmin,
+  notificationBell,
+  onOpenVehicles,
+  onOpenCommandPalette,
+  pendingAction,
+  onActionConsumed,
+  preferences,
+  onUpdatePreferences,
 }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -133,7 +159,7 @@ export function ChatWindow({
       // Cmd/Ctrl + Shift + M for macros
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'M') {
         e.preventDefault();
-        setSidePanel(p => p === 'macros' ? 'none' : 'macros');
+        setSidePanel((p) => (p === 'macros' ? 'none' : 'macros'));
       }
     };
     window.addEventListener('keydown', handler);
@@ -150,7 +176,7 @@ export function ChatWindow({
       content: trimmed,
       timestamp: new Date().toISOString(),
     };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setLoading(true);
 
@@ -163,11 +189,14 @@ export function ChatWindow({
       });
 
       if (!res.ok) {
-        if (res.status === 401) { window.location.reload(); return; }
+        if (res.status === 401) {
+          window.location.reload();
+          return;
+        }
         throw new Error(`Error: ${res.status}`);
       }
 
-      const data = await res.json() as {
+      const data = (await res.json()) as {
         reply: string;
         citations: Citation[];
         sessionId: string;
@@ -178,7 +207,10 @@ export function ChatWindow({
 
       // Track recent search in preferences
       if (preferences && onUpdatePreferences) {
-        const recent = [trimmed, ...(preferences.recentSearches || []).filter(s => s !== trimmed)].slice(0, 20);
+        const recent = [
+          trimmed,
+          ...(preferences.recentSearches || []).filter((s) => s !== trimmed),
+        ].slice(0, 20);
         const updated = { ...preferences, recentSearches: recent };
         onUpdatePreferences(updated);
         fetch('/api/preferences', {
@@ -197,13 +229,16 @@ export function ChatWindow({
         confidence: data.confidence,
         timestamp: new Date().toISOString(),
       };
-      setMessages(prev => [...prev, assistantMsg]);
+      setMessages((prev) => [...prev, assistantMsg]);
     } catch {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Sorry, something went wrong. Please try again.',
-        timestamp: new Date().toISOString(),
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: 'Sorry, something went wrong. Please try again.',
+          timestamp: new Date().toISOString(),
+        },
+      ]);
     } finally {
       setLoading(false);
       inputRef.current?.focus();
@@ -217,7 +252,7 @@ export function ChatWindow({
     }
     // Up arrow when input is empty → edit last user message
     if (e.key === 'ArrowUp' && input === '') {
-      const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+      const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user');
       if (lastUserMsg) {
         e.preventDefault();
         setInput(lastUserMsg.content);
@@ -225,23 +260,30 @@ export function ChatWindow({
     }
   };
 
-  const handleFeedback = useCallback(async (messageIndex: number, rating: 'up' | 'down') => {
-    if (!sessionId) return;
-    try {
-      await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ sessionId, messageIndex, rating }),
-      });
-    } catch { /* best effort */ }
-  }, [sessionId]);
+  const handleFeedback = useCallback(
+    async (messageIndex: number, rating: 'up' | 'down') => {
+      if (!sessionId) return;
+      try {
+        await fetch('/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ sessionId, messageIndex, rating }),
+        });
+      } catch {
+        /* best effort */
+      }
+    },
+    [sessionId],
+  );
 
   const handleExportChat = () => {
-    const text = messages.map(m => {
-      const role = m.role === 'user' ? '👤 You' : '🤖 Kinsen';
-      return `${role} (${new Date(m.timestamp).toLocaleString()}):\n${m.content}\n`;
-    }).join('\n---\n\n');
+    const text = messages
+      .map((m) => {
+        const role = m.role === 'user' ? '👤 You' : '🤖 Kinsen';
+        return `${role} (${new Date(m.timestamp).toLocaleString()}):\n${m.content}\n`;
+      })
+      .join('\n---\n\n');
 
     const blob = new Blob([text], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
@@ -254,7 +296,8 @@ export function ChatWindow({
 
   // Voice input via Web Speech API
   const handleVoiceInput = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       addToast('warning', 'Voice input is not supported in this browser.');
       return;
@@ -264,18 +307,21 @@ export function ChatWindow({
     recognition.interimResults = false;
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
-      setInput(prev => prev + (prev ? ' ' : '') + transcript);
+      setInput((prev) => prev + (prev ? ' ' : '') + transcript);
       inputRef.current?.focus();
     };
     recognition.start();
   };
 
   const handleMacroResult = (result: string) => {
-    setMessages(prev => [...prev, {
-      role: 'assistant',
-      content: result,
-      timestamp: new Date().toISOString(),
-    }]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: 'assistant',
+        content: result,
+        timestamp: new Date().toISOString(),
+      },
+    ]);
     setSidePanel('none');
     addToast('success', 'Macro executed successfully');
   };
@@ -288,22 +334,31 @@ export function ChatWindow({
 
   // Toggle pin on message
   const handleTogglePin = (index: number) => {
-    setMessages(prev => prev.map((m, i) => i === index ? { ...m, pinned: !m.pinned } : m));
+    setMessages((prev) => prev.map((m, i) => (i === index ? { ...m, pinned: !m.pinned } : m)));
     addToast('info', 'Message pin toggled');
   };
 
   // Add reaction to message
   const handleReaction = (index: number, emoji: string) => {
-    setMessages(prev => prev.map((m, i) => {
-      if (i !== index) return m;
-      const reactions = m.reactions || [];
-      return { ...m, reactions: reactions.includes(emoji) ? reactions.filter(r => r !== emoji) : [...reactions, emoji] };
-    }));
+    setMessages((prev) =>
+      prev.map((m, i) => {
+        if (i !== index) return m;
+        const reactions = m.reactions || [];
+        return {
+          ...m,
+          reactions: reactions.includes(emoji)
+            ? reactions.filter((r) => r !== emoji)
+            : [...reactions, emoji],
+        };
+      }),
+    );
   };
 
   // Toggle bookmark
   const handleBookmark = (index: number) => {
-    setMessages(prev => prev.map((m, i) => i === index ? { ...m, bookmarked: !m.bookmarked } : m));
+    setMessages((prev) =>
+      prev.map((m, i) => (i === index ? { ...m, bookmarked: !m.bookmarked } : m)),
+    );
     const msg = messages[index];
     const bookmarks = JSON.parse(localStorage.getItem('kinsen-bookmarks') || '[]');
     const exists = bookmarks.findIndex((b: any) => b.content === msg.content);
@@ -318,7 +373,7 @@ export function ChatWindow({
   };
 
   // Pinned messages
-  const pinnedMessages = messages.filter(m => m.pinned);
+  const pinnedMessages = messages.filter((m) => m.pinned);
 
   return (
     <div className="chat-layout">
@@ -327,9 +382,21 @@ export function ChatWindow({
         <aside className="chat-sidebar">
           <div className="sidebar-header">
             <h3>Sessions</h3>
-            <button className="icon-btn" onClick={() => setShowSidebar(false)} aria-label="Close sidebar">✕</button>
+            <button
+              className="icon-btn"
+              onClick={() => setShowSidebar(false)}
+              aria-label="Close sidebar"
+            >
+              ✕
+            </button>
           </div>
-          <button className="sidebar-item active" onClick={() => { setMessages([]); setSessionId(null); }}>
+          <button
+            className="sidebar-item active"
+            onClick={() => {
+              setMessages([]);
+              setSessionId(null);
+            }}
+          >
             + New Conversation
           </button>
 
@@ -338,7 +405,15 @@ export function ChatWindow({
             <div className="sidebar-section">
               <h4>🔍 Recent Searches</h4>
               {preferences.recentSearches.slice(0, 5).map((s, i) => (
-                <button key={i} className="sidebar-item" onClick={() => { setInput(s); inputRef.current?.focus(); setShowSidebar(false); }}>
+                <button
+                  key={i}
+                  className="sidebar-item"
+                  onClick={() => {
+                    setInput(s);
+                    inputRef.current?.focus();
+                    setShowSidebar(false);
+                  }}
+                >
                   {s.length > 35 ? s.slice(0, 35) + '…' : s}
                 </button>
               ))}
@@ -346,7 +421,9 @@ export function ChatWindow({
           )}
 
           <div className="sidebar-info">
-            <small>Session history is saved automatically. Start a new conversation to begin fresh.</small>
+            <small>
+              Session history is saved automatically. Start a new conversation to begin fresh.
+            </small>
           </div>
         </aside>
       )}
@@ -354,12 +431,27 @@ export function ChatWindow({
       <div className="chat-container">
         <header className="chat-header">
           <div className="header-left">
-            <button className="icon-btn" onClick={() => setShowSidebar(!showSidebar)} aria-label="Toggle sidebar" title="Sessions">
+            <button
+              className="icon-btn"
+              onClick={() => setShowSidebar(!showSidebar)}
+              aria-label="Toggle sidebar"
+              title="Sessions"
+            >
               ☰
             </button>
             <svg viewBox="0 0 100 100" width="28" height="28">
               <rect width="100" height="100" rx="20" fill="#1e40af" />
-              <text x="50" y="68" fontFamily="Arial" fontSize="50" fontWeight="bold" fill="white" textAnchor="middle">K</text>
+              <text
+                x="50"
+                y="68"
+                fontFamily="Arial"
+                fontSize="50"
+                fontWeight="bold"
+                fill="white"
+                textAnchor="middle"
+              >
+                K
+              </text>
             </svg>
             <div>
               <h1>Kinsen Chat</h1>
@@ -370,66 +462,76 @@ export function ChatWindow({
           </div>
           <div className="header-actions">
             {onOpenCommandPalette && (
-              <button className="icon-btn" onClick={onOpenCommandPalette} title="Command Palette (⌘K)">⌘</button>
+              <button
+                className="icon-btn"
+                onClick={onOpenCommandPalette}
+                title="Command Palette (⌘K)"
+              >
+                ⌘
+              </button>
             )}
             <button
               className={`icon-btn ${sidePanel === 'macros' ? 'active' : ''}`}
-              onClick={() => setSidePanel(p => p === 'macros' ? 'none' : 'macros')}
+              onClick={() => setSidePanel((p) => (p === 'macros' ? 'none' : 'macros'))}
               title="Macros & Calculators (⌘⇧M)"
             >
               🧮
             </button>
             <button
               className={`icon-btn ${sidePanel === 'checklists' ? 'active' : ''}`}
-              onClick={() => setSidePanel(p => p === 'checklists' ? 'none' : 'checklists')}
+              onClick={() => setSidePanel((p) => (p === 'checklists' ? 'none' : 'checklists'))}
               title="Checklists"
             >
               ✅
             </button>
             <button
               className={`icon-btn ${sidePanel === 'workflows' ? 'active' : ''}`}
-              onClick={() => setSidePanel(p => p === 'workflows' ? 'none' : 'workflows')}
+              onClick={() => setSidePanel((p) => (p === 'workflows' ? 'none' : 'workflows'))}
               title="Guided Workflows"
             >
               📋
             </button>
             <button
               className={`icon-btn ${sidePanel === 'customers' ? 'active' : ''}`}
-              onClick={() => setSidePanel(p => p === 'customers' ? 'none' : 'customers')}
+              onClick={() => setSidePanel((p) => (p === 'customers' ? 'none' : 'customers'))}
               title="Customer Lookup"
             >
               👤
             </button>
             <button
               className={`icon-btn ${sidePanel === 'email' ? 'active' : ''}`}
-              onClick={() => setSidePanel(p => p === 'email' ? 'none' : 'email')}
+              onClick={() => setSidePanel((p) => (p === 'email' ? 'none' : 'email'))}
               title="Email Generator"
             >
               ✉️
             </button>
             <button
               className={`icon-btn ${sidePanel === 'escalations' ? 'active' : ''}`}
-              onClick={() => setSidePanel(p => p === 'escalations' ? 'none' : 'escalations')}
+              onClick={() => setSidePanel((p) => (p === 'escalations' ? 'none' : 'escalations'))}
               title="Escalations"
             >
               🔴
             </button>
             <button
               className={`icon-btn ${sidePanel === 'search' ? 'active' : ''}`}
-              onClick={() => setSidePanel(p => p === 'search' ? 'none' : 'search')}
+              onClick={() => setSidePanel((p) => (p === 'search' ? 'none' : 'search'))}
               title="Search Messages"
             >
               🔍
             </button>
             <button
               className={`icon-btn ${sidePanel === 'saved-replies' ? 'active' : ''}`}
-              onClick={() => setSidePanel(p => p === 'saved-replies' ? 'none' : 'saved-replies')}
+              onClick={() =>
+                setSidePanel((p) => (p === 'saved-replies' ? 'none' : 'saved-replies'))
+              }
               title="Saved Replies"
             >
               💬
             </button>
             {onOpenVehicles && (
-              <button className="icon-btn" onClick={onOpenVehicles} title="Vehicle Status Board">🚗</button>
+              <button className="icon-btn" onClick={onOpenVehicles} title="Vehicle Status Board">
+                🚗
+              </button>
             )}
             {messages.length > 0 && (
               <button className="icon-btn" onClick={handleExportChat} title="Export chat">
@@ -440,6 +542,17 @@ export function ChatWindow({
             <button className="icon-btn" onClick={onToggleDark} title="Toggle dark mode">
               {darkMode ? '☀️' : '🌙'}
             </button>
+            {onLogout && (
+              <button
+                className="icon-btn"
+                onClick={onLogout}
+                title="Sign out"
+                aria-label="Sign out"
+                data-testid="signout-button"
+              >
+                ↪
+              </button>
+            )}
             {onOpenAdmin && (
               <button className="icon-btn" onClick={onOpenAdmin} title="Admin Panel">
                 ⚙️
@@ -456,7 +569,8 @@ export function ChatWindow({
                 <span className="pinned-label">📌 Pinned ({pinnedMessages.length})</span>
                 {pinnedMessages.map((m, i) => (
                   <div key={i} className="pinned-msg-preview">
-                    {m.content.slice(0, 60)}{m.content.length > 60 ? '…' : ''}
+                    {m.content.slice(0, 60)}
+                    {m.content.length > 60 ? '…' : ''}
                   </div>
                 ))}
               </div>
@@ -474,8 +588,15 @@ export function ChatWindow({
                     'Cross-border rental rules?',
                     'Calculate a late fee',
                     'Customer verification steps',
-                  ].map(q => (
-                    <button key={q} className="quick-action" onClick={() => { setInput(q); inputRef.current?.focus(); }}>
+                  ].map((q) => (
+                    <button
+                      key={q}
+                      className="quick-action"
+                      onClick={() => {
+                        setInput(q);
+                        inputRef.current?.focus();
+                      }}
+                    >
                       {q}
                     </button>
                   ))}
@@ -495,7 +616,10 @@ export function ChatWindow({
                 message={msg}
                 messageIndex={i}
                 onFeedback={msg.role === 'assistant' ? handleFeedback : undefined}
-                onFollowupClick={(q) => { setInput(q); inputRef.current?.focus(); }}
+                onFollowupClick={(q) => {
+                  setInput(q);
+                  inputRef.current?.focus();
+                }}
                 onCitationClick={handleCitationClick}
                 onTogglePin={() => handleTogglePin(i)}
                 onReaction={(emoji) => handleReaction(i, emoji)}
@@ -507,7 +631,9 @@ export function ChatWindow({
               <div className="message assistant">
                 <div className="message-bubble">
                   <div className="typing-indicator">
-                    <span /><span /><span />
+                    <span />
+                    <span />
+                    <span />
                   </div>
                 </div>
               </div>
@@ -527,18 +653,17 @@ export function ChatWindow({
               <ChecklistPanel onClose={() => setSidePanel('none')} />
             </div>
           )}
-          {sidePanel === 'workflows' && (
-            <WorkflowWizard onClose={() => setSidePanel('none')} />
-          )}
+          {sidePanel === 'workflows' && <WorkflowWizard onClose={() => setSidePanel('none')} />}
           {sidePanel === 'customers' && (
             <CustomerLookup
               onClose={() => setSidePanel('none')}
-              onInsertContext={(text) => { setInput(prev => prev + (prev ? '\n' : '') + text); inputRef.current?.focus(); }}
+              onInsertContext={(text) => {
+                setInput((prev) => prev + (prev ? '\n' : '') + text);
+                inputRef.current?.focus();
+              }}
             />
           )}
-          {sidePanel === 'email' && (
-            <EmailGenerator onClose={() => setSidePanel('none')} />
-          )}
+          {sidePanel === 'email' && <EmailGenerator onClose={() => setSidePanel('none')} />}
           {sidePanel === 'escalations' && (
             <EscalationPanel
               onClose={() => setSidePanel('none')}
@@ -548,7 +673,11 @@ export function ChatWindow({
           )}
           {sidePanel === 'citation' && citationNote && (
             <div className="side-panel">
-              <CitationReader noteId={citationNote.id} noteTitle={citationNote.title} onClose={() => setSidePanel('none')} />
+              <CitationReader
+                noteId={citationNote.id}
+                noteTitle={citationNote.title}
+                onClose={() => setSidePanel('none')}
+              />
             </div>
           )}
           {sidePanel === 'search' && (
@@ -568,7 +697,11 @@ export function ChatWindow({
           {sidePanel === 'saved-replies' && (
             <div className="side-panel">
               <SavedReplies
-                onSelect={(text) => { setInput(prev => prev + (prev ? '\n' : '') + text); inputRef.current?.focus(); setSidePanel('none'); }}
+                onSelect={(text) => {
+                  setInput((prev) => prev + (prev ? '\n' : '') + text);
+                  inputRef.current?.focus();
+                  setSidePanel('none');
+                }}
                 onClose={() => setSidePanel('none')}
               />
             </div>
@@ -579,28 +712,46 @@ export function ChatWindow({
           <AutoSuggest
             query={input}
             visible={showAutoSuggest && input.length >= 2 && !loading}
-            onSelect={(text) => { setInput(text); setShowAutoSuggest(false); inputRef.current?.focus(); }}
+            onSelect={(text) => {
+              setInput(text);
+              setShowAutoSuggest(false);
+              inputRef.current?.focus();
+            }}
           />
           <form className="chat-input-form" onSubmit={sendMessage}>
-          <button type="button" className="icon-btn voice-btn" onClick={handleVoiceInput} title="Voice input">
-            🎤
-          </button>
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={e => { setInput(e.target.value); setShowAutoSuggest(true); }}
-            onKeyDown={handleKeyDown}
-            onBlur={() => setTimeout(() => setShowAutoSuggest(false), 200)}
-            onFocus={() => setShowAutoSuggest(true)}
-            placeholder="Ask about policies, procedures, pricing… (⌘K to focus)"
-            rows={1}
-            disabled={loading}
-          />
-          <button type="submit" disabled={loading || !input.trim()} aria-label="Send">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-            </svg>
-          </button>
+            <button
+              type="button"
+              className="icon-btn voice-btn"
+              onClick={handleVoiceInput}
+              title="Voice input"
+            >
+              🎤
+            </button>
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setShowAutoSuggest(true);
+              }}
+              onKeyDown={handleKeyDown}
+              onBlur={() => setTimeout(() => setShowAutoSuggest(false), 200)}
+              onFocus={() => setShowAutoSuggest(true)}
+              placeholder="Ask about policies, procedures, pricing… (⌘K to focus)"
+              rows={1}
+              disabled={loading}
+              data-testid="chat-input"
+            />
+            <button
+              type="submit"
+              disabled={loading || !input.trim()}
+              aria-label="Send"
+              data-testid="chat-send"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+              </svg>
+            </button>
           </form>
         </div>
       </div>

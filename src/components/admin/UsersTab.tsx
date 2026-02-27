@@ -28,13 +28,17 @@ export function UsersTab() {
     try {
       const res = await fetch('/api/admin/users', { credentials: 'include' });
       if (res.ok) {
-        setUsers(await res.json() as UserInfo[]);
+        setUsers((await res.json()) as UserInfo[]);
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     setLoading(false);
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const createUser = async () => {
     if (!newEmail || !newName || !newPassword) return;
@@ -44,18 +48,28 @@ export function UsersTab() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email: newEmail, name: newName, password: newPassword, role: newRole }),
+        body: JSON.stringify({
+          email: newEmail,
+          name: newName,
+          password: newPassword,
+          role: newRole,
+        }),
       });
       if (res.ok) {
         setMessage('User created!');
         setShowCreate(false);
-        setNewEmail(''); setNewName(''); setNewPassword(''); setNewRole('agent');
+        setNewEmail('');
+        setNewName('');
+        setNewPassword('');
+        setNewRole('agent');
         fetchUsers();
       } else {
-        const data = await res.json() as { error: string };
+        const data = (await res.json()) as { error: string };
         setMessage(`Error: ${data.error}`);
       }
-    } catch { setMessage('Create failed'); }
+    } catch {
+      setMessage('Create failed');
+    }
     setCreating(false);
     setTimeout(() => setMessage(''), 3000);
   };
@@ -69,7 +83,9 @@ export function UsersTab() {
         body: JSON.stringify({ id: user.id, active: !user.active }),
       });
       fetchUsers();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   const changeRole = async (user: UserInfo, role: string) => {
@@ -81,7 +97,9 @@ export function UsersTab() {
         body: JSON.stringify({ id: user.id, role }),
       });
       fetchUsers();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   if (loading) return <div className="tab-loading">Loading users…</div>;
@@ -102,21 +120,36 @@ export function UsersTab() {
           <div className="form-row">
             <div className="form-field">
               <label>Email *</label>
-              <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="user@kinsen-rentals.com" />
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="user@kinsen-rentals.com"
+              />
             </div>
             <div className="form-field">
               <label>Name *</label>
-              <input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Full name" />
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Full name"
+              />
             </div>
           </div>
           <div className="form-row">
             <div className="form-field">
               <label>Password *</label>
-              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Initial password" />
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Initial password"
+              />
             </div>
             <div className="form-field">
               <label>Role</label>
-              <select value={newRole} onChange={e => setNewRole(e.target.value)}>
+              <select value={newRole} onChange={(e) => setNewRole(e.target.value)}>
                 <option value="agent">Agent</option>
                 <option value="supervisor">Supervisor</option>
                 <option value="manager">Manager</option>
@@ -124,7 +157,11 @@ export function UsersTab() {
               </select>
             </div>
           </div>
-          <button className="btn-primary" onClick={createUser} disabled={creating || !newEmail || !newName || !newPassword}>
+          <button
+            className="btn-primary"
+            onClick={createUser}
+            disabled={creating || !newEmail || !newName || !newPassword}
+          >
             {creating ? 'Creating…' : 'Create User'}
           </button>
         </div>
@@ -143,12 +180,16 @@ export function UsersTab() {
             </tr>
           </thead>
           <tbody>
-            {users.map(u => (
+            {users.map((u) => (
               <tr key={u.id} className={!u.active ? 'inactive-row' : ''}>
                 <td>{u.name}</td>
                 <td>{u.email}</td>
                 <td>
-                  <select value={u.role} onChange={e => changeRole(u, e.target.value)} className="role-select">
+                  <select
+                    value={u.role}
+                    onChange={(e) => changeRole(u, e.target.value)}
+                    className="role-select"
+                  >
                     <option value="agent">Agent</option>
                     <option value="supervisor">Supervisor</option>
                     <option value="manager">Manager</option>
@@ -169,7 +210,11 @@ export function UsersTab() {
               </tr>
             ))}
             {users.length === 0 && (
-              <tr><td colSpan={6} className="empty-state">No users yet. Create one above or use passcode authentication.</td></tr>
+              <tr>
+                <td colSpan={6} className="empty-state">
+                  No users yet. Create one above or use passcode authentication.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

@@ -6,7 +6,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
   const logId = url.searchParams.get('log');
   if (logId) {
-    const log = await ctx.env.KV.get(`webhook:log:${logId}`, 'json') as unknown[] | null;
+    const log = (await ctx.env.KV.get(`webhook:log:${logId}`, 'json')) as unknown[] | null;
     return new Response(JSON.stringify(log || []));
   }
 
@@ -23,14 +23,20 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 };
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const body = await ctx.request.json() as { url: string; events: WebhookEvent[]; secret?: string };
+  const body = (await ctx.request.json()) as {
+    url: string;
+    events: WebhookEvent[];
+    secret?: string;
+  };
 
   if (!body.url || !body.events?.length) {
     return new Response(JSON.stringify({ error: 'url and events required' }), { status: 400 });
   }
 
   // Validate URL
-  try { new URL(body.url); } catch {
+  try {
+    new URL(body.url);
+  } catch {
     return new Response(JSON.stringify({ error: 'Invalid URL' }), { status: 400 });
   }
 
@@ -56,7 +62,12 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 };
 
 export const onRequestPut: PagesFunction<Env> = async (ctx) => {
-  const body = await ctx.request.json() as { id: string; active?: boolean; events?: WebhookEvent[]; url?: string };
+  const body = (await ctx.request.json()) as {
+    id: string;
+    active?: boolean;
+    events?: WebhookEvent[];
+    url?: string;
+  };
   if (!body.id) return new Response(JSON.stringify({ error: 'id required' }), { status: 400 });
 
   const raw = await ctx.env.KV.get(`webhook:${body.id}`);
@@ -80,7 +91,7 @@ export const onRequestDelete: PagesFunction<Env> = async (ctx) => {
 
   const indexRaw = await ctx.env.KV.get('webhook:index');
   const index: string[] = indexRaw ? JSON.parse(indexRaw) : [];
-  const filtered = index.filter(i => i !== id);
+  const filtered = index.filter((i) => i !== id);
   await ctx.env.KV.put('webhook:index', JSON.stringify(filtered));
 
   return new Response(JSON.stringify({ ok: true }));

@@ -2,13 +2,16 @@
 import type { Env, Notification } from '../../src/lib/types';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
-  const user = (ctx.data as Record<string, unknown>).user as { userId: string; role: string } | undefined;
+  const user = (ctx.data as Record<string, unknown>).user as
+    | { userId: string; role: string }
+    | undefined;
   const userId = user?.userId || 'anonymous';
   const role = user?.role || 'agent';
 
   // Get personal + role-based notifications
   const targets = [userId];
-  if (role === 'supervisor' || role === 'manager' || role === 'admin') targets.push('__supervisors__');
+  if (role === 'supervisor' || role === 'manager' || role === 'admin')
+    targets.push('__supervisors__');
   if (role === 'manager' || role === 'admin') targets.push('__managers__');
   if (role === 'admin') targets.push('__admins__');
   targets.push('__all__');
@@ -29,14 +32,20 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 };
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
-  const body = await ctx.request.json() as { action: string; notificationId?: string; ids?: string[] };
+  const body = (await ctx.request.json()) as {
+    action: string;
+    notificationId?: string;
+    ids?: string[];
+  };
 
   if (body.action === 'mark-read' && body.notificationId) {
     const raw = await ctx.env.KV.get(`notification:${body.notificationId}`);
     if (raw) {
       const notif = JSON.parse(raw) as Notification;
       notif.read = true;
-      await ctx.env.KV.put(`notification:${body.notificationId}`, JSON.stringify(notif), { expirationTtl: 7 * 86400 });
+      await ctx.env.KV.put(`notification:${body.notificationId}`, JSON.stringify(notif), {
+        expirationTtl: 7 * 86400,
+      });
     }
     return new Response(JSON.stringify({ ok: true }));
   }
@@ -47,7 +56,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       if (raw) {
         const notif = JSON.parse(raw) as Notification;
         notif.read = true;
-        await ctx.env.KV.put(`notification:${nid}`, JSON.stringify(notif), { expirationTtl: 7 * 86400 });
+        await ctx.env.KV.put(`notification:${nid}`, JSON.stringify(notif), {
+          expirationTtl: 7 * 86400,
+        });
       }
     }
     return new Response(JSON.stringify({ ok: true }));

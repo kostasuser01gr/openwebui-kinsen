@@ -8,10 +8,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const list = await env.KV.list({ prefix: 'audit:', limit });
   const entries: any[] = [];
 
-  const promises = list.keys.map(k =>
-    env.KV.get(k.name, 'json').then(val => {
+  const promises = list.keys.map((k) =>
+    env.KV.get(k.name, 'json').then((val) => {
       if (val) entries.push(val);
-    })
+    }),
   );
   await Promise.all(promises);
 

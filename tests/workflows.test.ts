@@ -19,14 +19,14 @@ describe('WORKFLOW_TEMPLATES', () => {
 
   it('initial step exists in steps array', () => {
     for (const wf of WORKFLOW_TEMPLATES) {
-      const initialStep = wf.steps.find(s => s.id === wf.initialStepId);
+      const initialStep = wf.steps.find((s) => s.id === wf.initialStepId);
       expect(initialStep).toBeDefined();
     }
   });
 
   it('all nextStepId references point to existing steps', () => {
     for (const wf of WORKFLOW_TEMPLATES) {
-      const stepIds = new Set(wf.steps.map(s => s.id));
+      const stepIds = new Set(wf.steps.map((s) => s.id));
       for (const step of wf.steps) {
         if (step.nextStepId) {
           expect(stepIds.has(step.nextStepId)).toBe(true);
@@ -41,14 +41,14 @@ describe('WORKFLOW_TEMPLATES', () => {
   });
 
   it('damage-claim workflow has branching', () => {
-    const wf = WORKFLOW_TEMPLATES.find(w => w.id === 'damage-claim')!;
-    const choiceSteps = wf.steps.filter(s => s.type === 'choice');
+    const wf = WORKFLOW_TEMPLATES.find((w) => w.id === 'damage-claim')!;
+    const choiceSteps = wf.steps.filter((s) => s.type === 'choice');
     expect(choiceSteps.length).toBeGreaterThanOrEqual(1);
   });
 
   it('new-rental-walkthrough has all expected step types', () => {
-    const wf = WORKFLOW_TEMPLATES.find(w => w.id === 'new-rental-walkthrough')!;
-    const types = new Set(wf.steps.map(s => s.type));
+    const wf = WORKFLOW_TEMPLATES.find((w) => w.id === 'new-rental-walkthrough')!;
+    const types = new Set(wf.steps.map((s) => s.type));
     expect(types.has('input')).toBe(true);
     expect(types.has('checklist')).toBe(true);
     expect(types.has('choice')).toBe(true);
@@ -90,7 +90,7 @@ describe('Customer seed data', () => {
 
   it('bookings reference valid customers', async () => {
     const { SAMPLE_CUSTOMERS, SAMPLE_BOOKINGS } = await import('../src/lib/seed-customers');
-    const custIds = new Set(SAMPLE_CUSTOMERS.map(c => c.id));
+    const custIds = new Set(SAMPLE_CUSTOMERS.map((c) => c.id));
     for (const b of SAMPLE_BOOKINGS) {
       expect(custIds.has(b.customerId)).toBe(true);
     }
@@ -110,7 +110,7 @@ describe('Feature flags', () => {
 
   it('openai flag is disabled by default', async () => {
     const { DEFAULT_FLAGS } = await import('../src/lib/feature-flags');
-    const openai = DEFAULT_FLAGS.find(f => f.id === 'openai');
+    const openai = DEFAULT_FLAGS.find((f) => f.id === 'openai');
     expect(openai?.enabled).toBe(false);
   });
 });

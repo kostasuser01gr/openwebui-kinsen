@@ -5,12 +5,21 @@ import { hasPermission } from '../../src/lib/users';
 
 const RATE_LIMIT_WINDOW = 60; // seconds
 const RATE_LIMIT_MAX = 30; // requests per window
+const AUTH_RATE_LIMIT_MAX = 12; // tighter limit for auth endpoints
 const BRUTE_FORCE_MAX = 5; // max failed auth attempts
 const BRUTE_FORCE_WINDOW = 900; // 15 minute lockout
 
 // Map URL paths to required permissions
 function getRequiredPermission(path: string, method: string): string | null {
-  if (path === '/api/auth' || path === '/api/health') return null; // public
+  if (path === '/api/health') return null; // public
+  if (
+    path === '/api/auth' ||
+    path.startsWith('/api/auth/login') ||
+    path.startsWith('/api/auth/signup')
+  ) {
+    return null; // public auth entrypoints
+  }
+  if (path.startsWith('/api/auth/me') || path.startsWith('/api/auth/logout')) return 'chat';
   if (path.startsWith('/api/admin/seed')) return 'admin:seed';
   if (path.startsWith('/api/admin/knowledge')) {
     return method === 'GET' ? 'admin:knowledge:read' : 'admin:knowledge:write';
@@ -48,6 +57,10 @@ function getRequiredPermission(path: string, method: string): string | null {
 export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
   const url = new URL(request.url);
+  const isAuthEndpoint =
+    url.pathname === '/api/auth' ||
+    url.pathname.startsWith('/api/auth/login') ||
+    url.pathname.startsWith('/api/auth/signup');
 
   // CORS + security headers
   const corsHeaders: Record<string, string> = {
@@ -58,39 +71,66 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Cross-Origin-Resource-Policy': 'same-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Content-Security-Policy':
+      "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
   };
 
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  const ip = request.headers.get('CF-Connecting-IP') || request.headers.get('x-forwarded-for') || 'unknown';
+  const ip =
+    request.headers.get('CF-Connecting-IP') || request.headers.get('x-forwarded-for') || 'unknown';
+
+  // Enforce same-origin for state-changing requests if Origin is present.
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
+    const origin = request.headers.get('Origin');
+    if (origin && origin !== url.origin) {
+      return new Response(JSON.stringify({ error: 'Cross-origin request blocked' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
 
   // Rate limiting by IP
-  const rateLimitKey = `ratelimit:${ip}:${Math.floor(Date.now() / (RATE_LIMIT_WINDOW * 1000))}`;
+  const rateLimitCap = isAuthEndpoint ? AUTH_RATE_LIMIT_MAX : RATE_LIMIT_MAX;
+  const rateBucket = Math.floor(Date.now() / (RATE_LIMIT_WINDOW * 1000));
+  const rateLimitKey = `ratelimit:${isAuthEndpoint ? 'auth' : 'api'}:${ip}:${rateBucket}`;
   try {
     const current = await env.KV.get(rateLimitKey);
     const count = current ? parseInt(current, 10) : 0;
-    if (count >= RATE_LIMIT_MAX) {
+    if (count >= rateLimitCap) {
       return new Response(JSON.stringify({ error: 'Rate limit exceeded. Try again later.' }), {
         status: 429,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(RATE_LIMIT_WINDOW) },
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Retry-After': String(RATE_LIMIT_WINDOW),
+        },
       });
     }
     context.waitUntil(
-      env.KV.put(rateLimitKey, String(count + 1), { expirationTtl: RATE_LIMIT_WINDOW * 2 })
+      env.KV.put(rateLimitKey, String(count + 1), { expirationTtl: RATE_LIMIT_WINDOW * 2 }),
     );
-  } catch { /* allow through on KV error */ }
+  } catch {
+    /* allow through on KV error */
+  }
 
   // Brute-force protection for auth endpoint
-  if (url.pathname === '/api/auth' && request.method === 'POST') {
+  if (isAuthEndpoint && request.method === 'POST') {
     const bruteKey = `brute:${ip}`;
     const attempts = await env.KV.get(bruteKey);
     if (attempts && parseInt(attempts, 10) >= BRUTE_FORCE_MAX) {
-      return new Response(JSON.stringify({ error: 'Too many failed attempts. Try again in 15 minutes.' }), {
-        status: 429,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: 'Too many failed attempts. Try again in 15 minutes.' }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
     }
   }
 
@@ -106,12 +146,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     }
 
     // Track failed auth attempts
-    if (url.pathname === '/api/auth' && response.status === 401) {
+    if (isAuthEndpoint && response.status === 401) {
       const bruteKey = `brute:${ip}`;
       const attempts = await env.KV.get(bruteKey);
       const count = attempts ? parseInt(attempts, 10) : 0;
-      context.waitUntil(env.KV.put(bruteKey, String(count + 1), { expirationTtl: BRUTE_FORCE_WINDOW }));
-    } else if (url.pathname === '/api/auth' && response.status === 200) {
+      context.waitUntil(
+        env.KV.put(bruteKey, String(count + 1), { expirationTtl: BRUTE_FORCE_WINDOW }),
+      );
+    } else if (isAuthEndpoint && response.status >= 200 && response.status < 300) {
       // Reset brute force counter on success
       context.waitUntil(env.KV.delete(`brute:${ip}`));
     }
@@ -145,7 +187,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     });
   }
 
-  const session = await env.KV.get(`session:${sessionToken}`, 'json') as any;
+  const session = (await env.KV.get(`session:${sessionToken}`, 'json')) as any;
   if (!session) {
     return new Response(JSON.stringify({ error: 'Session expired' }), {
       status: 401,
@@ -156,10 +198,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   // RBAC check
   const userRole = (session.role || 'agent') as UserRole;
   if (!hasPermission(userRole, requiredPermission)) {
-    return new Response(JSON.stringify({ error: 'Insufficient permissions', required: requiredPermission }), {
-      status: 403,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: 'Insufficient permissions', required: requiredPermission }),
+      {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
+    );
   }
 
   // Pass user info to downstream handlers
@@ -171,7 +216,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   };
 
   // Audit log
-  logAudit(context, env, url.pathname, request.method, ip, session.email || session.userId || 'passcode-user');
+  logAudit(
+    context,
+    env,
+    url.pathname,
+    request.method,
+    ip,
+    session.email || session.userId || 'passcode-user',
+  );
 
   const response = await context.next();
   const newResponse = new Response(response.body, response);
@@ -187,7 +239,7 @@ function logAudit(
   path: string,
   method: string,
   ip: string,
-  user: string
+  user: string,
 ) {
   const auditEntry = JSON.stringify({
     ts: new Date().toISOString(),

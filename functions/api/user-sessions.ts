@@ -21,7 +21,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, data }) =
   const currentToken = cookie.match(/kinsen_session=([^;]+)/)?.[1] || '';
 
   for (const key of sessionList.keys) {
-    const session = await env.KV.get(key.name, 'json') as any;
+    const session = (await env.KV.get(key.name, 'json')) as any;
     if (session && (session.userId === user.userId || session.email === user.email)) {
       const token = key.name.replace('session:', '');
       sessions.push({
@@ -53,9 +53,13 @@ export const onRequestDelete: PagesFunction<Env> = async ({ request, env, data }
     const sessionList = await env.KV.list({ prefix: 'session:', limit: 50 });
     let revoked = 0;
     for (const key of sessionList.keys) {
-      const session = await env.KV.get(key.name, 'json') as any;
+      const session = (await env.KV.get(key.name, 'json')) as any;
       const token = key.name.replace('session:', '');
-      if (session && (session.userId === user.userId || session.email === user.email) && token !== currentToken) {
+      if (
+        session &&
+        (session.userId === user.userId || session.email === user.email) &&
+        token !== currentToken
+      ) {
         await env.KV.delete(key.name);
         revoked++;
       }
@@ -72,7 +76,7 @@ export const onRequestDelete: PagesFunction<Env> = async ({ request, env, data }
   for (const key of sessionList.keys) {
     const token = key.name.replace('session:', '');
     if (token.startsWith(tokenPrefix)) {
-      const session = await env.KV.get(key.name, 'json') as any;
+      const session = (await env.KV.get(key.name, 'json')) as any;
       if (session && (session.userId === user.userId || session.email === user.email)) {
         await env.KV.delete(key.name);
         return Response.json({ revoked: 1 });

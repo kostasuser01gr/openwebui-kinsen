@@ -7,9 +7,20 @@ interface AnalyticsSummary {
   topIntents: { intent: string; count: number }[];
   feedbackSummary: { up: number; down: number };
   knowledgeGaps: string[];
-  staffMetrics?: { userId: string; name: string; totalMessages: number; avgSatisfaction: number; escalations: number }[];
+  staffMetrics?: {
+    userId: string;
+    name: string;
+    totalMessages: number;
+    avgSatisfaction: number;
+    escalations: number;
+  }[];
   hourlyCounts?: number[];
-  knowledgeEffectiveness?: { noteId: string; title: string; citations: number; thumbsDown: number }[];
+  knowledgeEffectiveness?: {
+    noteId: string;
+    title: string;
+    citations: number;
+    thumbsDown: number;
+  }[];
   sla?: { total: number; breached: number; avgResponseMin: number };
 }
 
@@ -17,24 +28,23 @@ export function AnalyticsTab() {
   const [data, setData] = useState<AnalyticsSummary | null>(null);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<'overview' | 'staff' | 'knowledge' | 'heatmap'>('overview');
+  const [activeSection, setActiveSection] = useState<
+    'overview' | 'staff' | 'knowledge' | 'heatmap'
+  >('overview');
 
   useEffect(() => {
     setLoading(true);
     fetch(`/api/admin/analytics?days=${days}`, { credentials: 'include' })
-      .then(r => r.json() as Promise<AnalyticsSummary>)
-      .then(d => setData(d))
+      .then((r) => r.json() as Promise<AnalyticsSummary>)
+      .then((d) => setData(d))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [days]);
 
   const exportCSV = () => {
     if (!data) return;
-    const rows = [
-      ['Date', 'Messages'],
-      ...data.dailyCounts.map(d => [d.date, String(d.count)]),
-    ];
-    const csv = rows.map(r => r.join(',')).join('\n');
+    const rows = [['Date', 'Messages'], ...data.dailyCounts.map((d) => [d.date, String(d.count)])];
+    const csv = rows.map((r) => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -47,17 +57,16 @@ export function AnalyticsTab() {
   if (loading) return <div className="tab-loading">Loading analytics…</div>;
   if (!data) return <div className="empty-state">Failed to load analytics.</div>;
 
-  const maxDaily = Math.max(...data.dailyCounts.map(d => d.count), 1);
+  const maxDaily = Math.max(...data.dailyCounts.map((d) => d.count), 1);
   const feedbackTotal = data.feedbackSummary.up + data.feedbackSummary.down;
-  const satisfactionRate = feedbackTotal > 0
-    ? Math.round((data.feedbackSummary.up / feedbackTotal) * 100)
-    : 0;
+  const satisfactionRate =
+    feedbackTotal > 0 ? Math.round((data.feedbackSummary.up / feedbackTotal) * 100) : 0;
 
   return (
     <div className="analytics-tab">
       <div className="tab-toolbar">
         <div className="period-selector">
-          {[7, 14, 30, 60, 90].map(d => (
+          {[7, 14, 30, 60, 90].map((d) => (
             <button
               key={d}
               className={`btn-sm ${days === d ? 'active' : ''}`}
@@ -68,12 +77,24 @@ export function AnalyticsTab() {
           ))}
         </div>
         <div className="analytics-nav">
-          {(['overview', 'staff', 'knowledge', 'heatmap'] as const).map(s => (
-            <button key={s} className={`btn-sm ${activeSection === s ? 'active' : ''}`} onClick={() => setActiveSection(s)}>
-              {s === 'overview' ? '📊 Overview' : s === 'staff' ? '👥 Staff' : s === 'knowledge' ? '📚 Knowledge' : '🗓 Heatmap'}
+          {(['overview', 'staff', 'knowledge', 'heatmap'] as const).map((s) => (
+            <button
+              key={s}
+              className={`btn-sm ${activeSection === s ? 'active' : ''}`}
+              onClick={() => setActiveSection(s)}
+            >
+              {s === 'overview'
+                ? '📊 Overview'
+                : s === 'staff'
+                  ? '👥 Staff'
+                  : s === 'knowledge'
+                    ? '📚 Knowledge'
+                    : '🗓 Heatmap'}
             </button>
           ))}
-          <button className="btn-sm" onClick={exportCSV} title="Export CSV">📥 CSV</button>
+          <button className="btn-sm" onClick={exportCSV} title="Export CSV">
+            📥 CSV
+          </button>
         </div>
       </div>
 
@@ -89,7 +110,9 @@ export function AnalyticsTab() {
         </div>
         <div className="kpi-card">
           <span className="kpi-value">{satisfactionRate}%</span>
-          <span className="kpi-label">Satisfaction ({data.feedbackSummary.up}👍 / {data.feedbackSummary.down}👎)</span>
+          <span className="kpi-label">
+            Satisfaction ({data.feedbackSummary.up}👍 / {data.feedbackSummary.down}👎)
+          </span>
         </div>
         <div className="kpi-card">
           <span className="kpi-value">{data.knowledgeGaps.length}</span>
@@ -102,7 +125,10 @@ export function AnalyticsTab() {
               <span className="kpi-label">Avg Escalation Response</span>
             </div>
             <div className="kpi-card">
-              <span className="kpi-value" style={{ color: data.sla.breached > 0 ? 'var(--red-500)' : 'var(--green-500)' }}>
+              <span
+                className="kpi-value"
+                style={{ color: data.sla.breached > 0 ? 'var(--red-500)' : 'var(--green-500)' }}
+              >
                 {data.sla.breached}/{data.sla.total}
               </span>
               <span className="kpi-label">SLA Breaches</span>
@@ -117,7 +143,7 @@ export function AnalyticsTab() {
           <div className="chart-section">
             <h3>📈 Daily Message Volume</h3>
             <div className="bar-chart">
-              {data.dailyCounts.slice(-30).map(d => (
+              {data.dailyCounts.slice(-30).map((d) => (
                 <div key={d.date} className="bar-col" title={`${d.date}: ${d.count} messages`}>
                   <div className="bar" style={{ height: `${(d.count / maxDaily) * 100}%` }}>
                     {d.count > 0 && <span className="bar-value">{d.count}</span>}
@@ -132,13 +158,16 @@ export function AnalyticsTab() {
           <div className="chart-section">
             <h3>🎯 Top Intents</h3>
             <div className="intent-list">
-              {data.topIntents.slice(0, 12).map(i => {
+              {data.topIntents.slice(0, 12).map((i) => {
                 const maxIntent = data.topIntents[0]?.count || 1;
                 return (
                   <div key={i.intent} className="intent-row">
                     <span className="intent-name">{i.intent}</span>
                     <div className="intent-bar-bg">
-                      <div className="intent-bar" style={{ width: `${(i.count / maxIntent) * 100}%` }} />
+                      <div
+                        className="intent-bar"
+                        style={{ width: `${(i.count / maxIntent) * 100}%` }}
+                      />
                     </div>
                     <span className="intent-count">{i.count}</span>
                   </div>
@@ -153,10 +182,14 @@ export function AnalyticsTab() {
               <h3>🕳️ Knowledge Gaps (Unanswered Queries)</h3>
               <div className="gap-list">
                 {data.knowledgeGaps.map((gap, i) => (
-                  <div key={i} className="gap-item">"{gap}"</div>
+                  <div key={i} className="gap-item">
+                    "{gap}"
+                  </div>
                 ))}
               </div>
-              <small>These queries returned no results. Consider adding knowledge notes for them.</small>
+              <small>
+                These queries returned no results. Consider adding knowledge notes for them.
+              </small>
             </div>
           )}
         </>
@@ -176,12 +209,21 @@ export function AnalyticsTab() {
                 </tr>
               </thead>
               <tbody>
-                {data.staffMetrics.map(s => (
+                {data.staffMetrics.map((s) => (
                   <tr key={s.userId}>
                     <td>{s.name}</td>
                     <td>{s.totalMessages}</td>
                     <td>
-                      <span style={{ color: s.avgSatisfaction >= 80 ? 'var(--green-500)' : s.avgSatisfaction >= 50 ? 'var(--yellow-500)' : 'var(--red-500)' }}>
+                      <span
+                        style={{
+                          color:
+                            s.avgSatisfaction >= 80
+                              ? 'var(--green-500)'
+                              : s.avgSatisfaction >= 50
+                                ? 'var(--yellow-500)'
+                                : 'var(--red-500)',
+                        }}
+                      >
                         {s.avgSatisfaction}%
                       </span>
                     </td>
@@ -191,7 +233,9 @@ export function AnalyticsTab() {
               </tbody>
             </table>
           ) : (
-            <div className="empty-state">No staff metrics yet. Metrics populate as users interact.</div>
+            <div className="empty-state">
+              No staff metrics yet. Metrics populate as users interact.
+            </div>
           )}
         </div>
       )}
@@ -210,7 +254,7 @@ export function AnalyticsTab() {
                 </tr>
               </thead>
               <tbody>
-                {data.knowledgeEffectiveness.map(k => {
+                {data.knowledgeEffectiveness.map((k) => {
                   const health = k.thumbsDown === 0 ? '🟢' : k.thumbsDown <= 2 ? '🟡' : '🔴';
                   return (
                     <tr key={k.noteId}>

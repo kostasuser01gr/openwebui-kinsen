@@ -52,31 +52,31 @@ describe('retrieveNotes', () => {
 
   it('finds deposit rules for deposit query', () => {
     const results = retrieveNotes('deposit hold credit card', SEED_NOTES, 3);
-    const ids = results.map(r => r.note.id);
+    const ids = results.map((r) => r.note.id);
     expect(ids).toContain('deposit-rules');
   });
 
   it('finds late return policy', () => {
     const results = retrieveNotes('customer returned the car 3 hours late', SEED_NOTES, 3);
-    const ids = results.map(r => r.note.id);
+    const ids = results.map((r) => r.note.id);
     expect(ids).toContain('late-return');
   });
 
   it('finds damage procedure for scratch query', () => {
     const results = retrieveNotes('I found a scratch on the bumper', SEED_NOTES, 3);
-    const ids = results.map(r => r.note.id);
+    const ids = results.map((r) => r.note.id);
     expect(ids).toContain('damage-procedure');
   });
 
   it('finds insurance for upsell query', () => {
     const results = retrieveNotes('how do I upsell insurance packages?', SEED_NOTES, 3);
-    const ids = results.map(r => r.note.id);
+    const ids = results.map((r) => r.note.id);
     expect(ids).toContain('upsell-insurance');
   });
 
   it('finds child seat policy', () => {
     const results = retrieveNotes('customer needs a baby seat', SEED_NOTES, 3);
-    const ids = results.map(r => r.note.id);
+    const ids = results.map((r) => r.note.id);
     expect(ids).toContain('child-seat');
   });
 

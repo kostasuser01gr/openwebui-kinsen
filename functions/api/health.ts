@@ -6,18 +6,21 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   try {
     // KV latency test
     const kvStart = Date.now();
-    const noteIndex = await env.KV.get('knowledge:index', 'json') as string[] | null;
+    const noteIndex = (await env.KV.get('knowledge:index', 'json')) as string[] | null;
     const kvLatency = Date.now() - kvStart;
 
     const noteCount = noteIndex?.length ?? 0;
-    const userIndex = await env.KV.get('user:index', 'json') as string[] | null;
+    const userIndex = (await env.KV.get('user:index', 'json')) as string[] | null;
     const userCount = userIndex?.length ?? 0;
-    const vehicleIndex = await env.KV.get('vehicle:index', 'json') as string[] | null;
-    const customerIndex = await env.KV.get('customer:index', 'json') as string[] | null;
-    const escalationIndex = await env.KV.get('escalation:index', 'json') as string[] | null;
+    const vehicleIndex = (await env.KV.get('vehicle:index', 'json')) as string[] | null;
+    const customerIndex = (await env.KV.get('customer:index', 'json')) as string[] | null;
+    const escalationIndex = (await env.KV.get('escalation:index', 'json')) as string[] | null;
 
     // Feature flags
-    const flags = await env.KV.get('feature:flags', 'json') as Array<{ id: string; enabled: boolean }> | null;
+    const flags = (await env.KV.get('feature:flags', 'json')) as Array<{
+      id: string;
+      enabled: boolean;
+    }> | null;
     const flagMap: Record<string, boolean> = {};
     if (flags) {
       for (const f of flags) flagMap[f.id] = f.enabled;
@@ -78,7 +81,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
           ...flagMap,
         },
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
   } catch (err) {
     return new Response(
@@ -89,7 +92,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
         error: { code: 'KV_ERROR', message: String(err) },
         latency: { total: Date.now() - startTime },
       }),
-      { status: 503, headers: { 'Content-Type': 'application/json' } }
+      { status: 503, headers: { 'Content-Type': 'application/json' } },
     );
   }
 };
