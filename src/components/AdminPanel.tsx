@@ -52,11 +52,16 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
     if (tab === 'shortcuts') loadShortcuts();
   }, [tab]);
 
+  const authHeaders = (extra?: Record<string, string>): Record<string, string> => ({
+    Authorization: `Bearer ${token}`,
+    ...extra,
+  });
+
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/users', { credentials: 'include' });
-      if (res.ok) setUsers(await res.json());
+      const res = await fetch('/api/admin/users', { headers: authHeaders() });
+      if (res.ok) setUsers((await res.json()) as UserInfo[]);
     } catch {
       /* ignore */
     }
@@ -66,8 +71,8 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
   const loadSessions = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/sessions', { credentials: 'include' });
-      if (res.ok) setSessions(await res.json());
+      const res = await fetch('/api/sessions', { headers: authHeaders() });
+      if (res.ok) setSessions((await res.json()) as SessionInfo[]);
     } catch {
       /* ignore */
     }
@@ -76,8 +81,8 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
 
   const loadShortcuts = async () => {
     try {
-      const res = await fetch('/api/shortcuts', { credentials: 'include' });
-      if (res.ok) setShortcuts(await res.json());
+      const res = await fetch('/api/shortcuts', { headers: authHeaders() });
+      if (res.ok) setShortcuts((await res.json()) as any[]);
     } catch {
       /* ignore */
     }
@@ -96,8 +101,7 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ name: newName.trim(), role: newRole, pin: newPin }),
       });
       const data = (await res.json()) as {
@@ -123,8 +127,7 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
     try {
       await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ sessionId: sid }),
       });
       loadSessions();
@@ -140,8 +143,7 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
     try {
       await fetch('/api/shortcuts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ label: scLabel.trim(), prompt: scPrompt.trim(), global: scGlobal }),
       });
       setScLabel('');
@@ -156,7 +158,7 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
     try {
       await fetch(`/api/shortcuts?id=${id}`, {
         method: 'DELETE',
-        credentials: 'include',
+        headers: authHeaders(),
       });
       loadShortcuts();
     } catch {

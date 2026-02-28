@@ -5,9 +5,7 @@ compatibility_date = "2024-06-20"
 [ai]
 binding = "AI"
 
-[vars]
-PIN_SALT_SECRET = "change-me-in-production"
-
 [[kv_namespaces]]
-id = "bd331e128b6a455a961b5a9aa939a8c7"
 binding = "KV"
+id = "bd331e128b6a455a961b5a9aa939a8c7"
+preview_id = "8fb3afe1db404547b47c9511ce935508"

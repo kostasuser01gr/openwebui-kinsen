@@ -1,5 +1,5 @@
 import type { Env, UserRole } from '../../src/lib/types';
-import { createUser, getUserById, isValidPin } from '../../src/lib/users';
+import { createUser, isValidPin } from '../../src/lib/users';
 
 // POST /api/users → create user (admin only)
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -57,40 +57,3 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 };
 
-// GET /api/users/:id → get user info
-export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { env } = context;
-  const url = new URL(context.request.url);
-  const parts = url.pathname.split('/');
-  const userId = parts[parts.length - 1];
-
-  if (!userId || userId === 'users') {
-    return new Response(JSON.stringify({ error: 'User ID required' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  const user = await getUserById(env, userId);
-  if (!user) {
-    return new Response(JSON.stringify({ error: 'User not found' }), {
-      status: 404,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  return new Response(
-    JSON.stringify({
-      id: user.id,
-      name: user.name,
-      role: user.role,
-      active: user.active,
-      createdAt: user.createdAt,
-      lastLoginAt: user.lastLoginAt,
-    }),
-    {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    },
-  );
-};
