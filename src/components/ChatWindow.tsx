@@ -27,6 +27,15 @@ interface Message {
   content: string;
   userId?: string;
   createdAt: string;
+  pinned?: boolean;
+  deleted?: boolean;
+}
+
+interface Room {
+  id: string;
+  name: string;
+  locked: boolean;
+  createdAt: string;
 }
 
 interface Macro {
@@ -82,6 +91,8 @@ export function ChatWindow({
   const [profileName, setProfileName] = useState('');
   const [profileLang, setProfileLang] = useState<'en' | 'el'>('en');
   const [profileMsg, setProfileMsg] = useState('');
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -99,6 +110,7 @@ export function ChatWindow({
     loadThreads();
     loadMacros();
     loadProfile();
+    loadRooms();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -142,6 +154,15 @@ export function ChatWindow({
     }
   };
 
+  const loadRooms = async () => {
+    try {
+      const res = await fetch('/api/rooms', { headers: auth() });
+      if (res.ok) setRooms((await res.json()) as Room[]);
+    } catch {
+      /* ignore */
+    }
+  };
+
   const loadProfile = async () => {
     try {
       const res = await fetch('/api/user/profile', { headers: auth() });
@@ -177,7 +198,7 @@ export function ChatWindow({
     const res = await fetch('/api/threads', {
       method: 'POST',
       headers: auth({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ title: 'New Thread' }),
+      body: JSON.stringify({ title: 'New Thread', roomId: selectedRoomId ?? 'global' }),
     });
     if (res.ok) {
       const t = (await res.json()) as Thread;
@@ -394,6 +415,52 @@ export function ChatWindow({
     textareaRef.current?.focus();
   };
 
+  const deleteMessage = async (threadId: string, msgId: string) => {
+    if (!confirm('Delete this message?')) return;
+    const res = await fetch(`/api/threads/${threadId}/messages/${msgId}`, {
+      method: 'DELETE',
+      headers: auth(),
+    });
+    if (res.ok) {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msgId ? { ...m, content: '[deleted]', deleted: true } : m)),
+      );
+    }
+  };
+
+  const pinMessage = async (threadId: string, msgId: string, currentlyPinned: boolean) => {
+    const res = await fetch(`/api/threads/${threadId}/messages/${msgId}`, {
+      method: 'PUT',
+      headers: auth({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ pinned: !currentlyPinned }),
+    });
+    if (res.ok) {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msgId ? { ...m, pinned: !currentlyPinned } : m)),
+      );
+    }
+  };
+
+  const exportThread = (format: 'json' | 'md') => {
+    if (!currentThread) return;
+    const url = `/api/threads/${currentThread.id}/export?format=${format}`;
+    const a = document.createElement('a');
+    a.href = url;
+    // Need auth header — use fetch + blob URL
+    fetch(url, { headers: auth() })
+      .then((r) => r.blob())
+      .then((blob) => {
+        const blobUrl = URL.createObjectURL(blob);
+        a.href = blobUrl;
+        a.download = `kinsen-thread-${currentThread.id.slice(0, 8)}.${format}`;
+        a.click();
+        URL.revokeObjectURL(blobUrl);
+      })
+      .catch(() => {
+        /* ignore */
+      });
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setInput(val);
@@ -430,8 +497,10 @@ export function ChatWindow({
   const filteredThreads = threads.filter(
     (t) =>
       (showArchived ? t.archived : !t.archived) &&
+      (selectedRoomId === null || t.roomId === selectedRoomId) &&
       t.title.toLowerCase().includes(threadSearch.toLowerCase()),
   );
+  const pinnedMessages = messages.filter((m) => m.pinned && !m.deleted);
   const cmdMacros = macros.filter((m) => !cmdFilter || m.title.toLowerCase().includes(cmdFilter));
 
   return (
@@ -462,9 +531,28 @@ export function ChatWindow({
           </div>
         </div>
 
-        <button className="btn-new-thread" onClick={newThread}>
-          + New Thread
-        </button>
+        <div className="room-selector">
+          <select
+            className="room-select"
+            value={selectedRoomId ?? ''}
+            onChange={(e) => {
+              setSelectedRoomId(e.target.value || null);
+              setCurrentThread(null);
+              setMessages([]);
+            }}
+          >
+            <option value="">All Rooms</option>
+            {rooms.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.locked ? '🔒 ' : ''}
+                {r.name}
+              </option>
+            ))}
+          </select>
+          <button className="btn-new-thread" onClick={newThread}>
+            + New Thread
+          </button>
+        </div>
 
         <input
           className="search-input"
@@ -689,13 +777,56 @@ export function ChatWindow({
               <div>
                 {currentThread.locked && <span className="lock-badge">🔒 Locked</span>}
                 <h2 className="chat-header-title">{currentThread.title}</h2>
+                <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+                  #{currentThread.roomId}
+                </span>
               </div>
-              <span className="text-muted">{messages.length} messages</span>
+              <div className="chat-header-actions">
+                <span className="text-muted">{messages.length} msgs</span>
+                <div
+                  className="export-dropdown"
+                  style={{ position: 'relative', display: 'inline-block' }}
+                >
+                  <button
+                    className="btn-small"
+                    onClick={() => exportThread('md')}
+                    title="Export as Markdown"
+                  >
+                    ⬇ MD
+                  </button>
+                  <button
+                    className="btn-small"
+                    onClick={() => exportThread('json')}
+                    title="Export as JSON"
+                    style={{ marginLeft: 4 }}
+                  >
+                    ⬇ JSON
+                  </button>
+                </div>
+              </div>
             </div>
+
+            {/* Pinned messages banner */}
+            {pinnedMessages.length > 0 && (
+              <div className="pinned-banner">
+                <span className="pinned-banner-label">📌 {pinnedMessages.length} pinned</span>
+                <div className="pinned-banner-list">
+                  {pinnedMessages.map((m) => (
+                    <span key={m.id} className="pinned-banner-item">
+                      {m.content.slice(0, 80)}
+                      {m.content.length > 80 ? '…' : ''}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="messages-container">
               {messages.map((msg) => (
-                <div key={msg.id} className={`message message-${msg.role}`}>
+                <div
+                  key={msg.id}
+                  className={`message message-${msg.role}${msg.pinned ? ' message-pinned' : ''}${msg.deleted ? ' message-deleted' : ''}`}
+                >
                   <div className="message-meta">
                     <span className="message-author">
                       {msg.role === 'user' ? (user?.name ?? 'You') : '🤖 Kinsen'}
@@ -706,23 +837,52 @@ export function ChatWindow({
                         minute: '2-digit',
                       })}
                     </span>
-                    <button
-                      className="btn-icon-sm"
-                      title="Copy message"
-                      onClick={() => copyMessage(msg.content, msg.id)}
-                    >
-                      {copied === msg.id ? '✓' : '⎘'}
-                    </button>
-                    <button
-                      className="btn-icon-sm"
-                      title="Quote message"
-                      onClick={() => quoteMessage(msg.content)}
-                    >
-                      ❝
-                    </button>
+                    {msg.pinned && (
+                      <span className="msg-pin-indicator" title="Pinned">
+                        📌
+                      </span>
+                    )}
+                    {!msg.deleted && (
+                      <>
+                        <button
+                          className="btn-icon-sm"
+                          title="Copy message"
+                          onClick={() => copyMessage(msg.content, msg.id)}
+                        >
+                          {copied === msg.id ? '✓' : '⎘'}
+                        </button>
+                        <button
+                          className="btn-icon-sm"
+                          title="Quote message"
+                          onClick={() => quoteMessage(msg.content)}
+                        >
+                          ❝
+                        </button>
+                        {canLock && (
+                          <button
+                            className="btn-icon-sm"
+                            title={msg.pinned ? 'Unpin' : 'Pin message'}
+                            onClick={() => pinMessage(currentThread.id, msg.id, !!msg.pinned)}
+                          >
+                            {msg.pinned ? '📍' : '📌'}
+                          </button>
+                        )}
+                        {(msg.userId === user?.id || canLock) && (
+                          <button
+                            className="btn-icon-sm btn-danger-hover"
+                            title="Delete message"
+                            onClick={() => deleteMessage(currentThread.id, msg.id)}
+                          >
+                            🗑
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                   <div className="message-body">
-                    {msg.role === 'assistant' ? (
+                    {msg.deleted ? (
+                      <p className="msg-deleted-text">[deleted]</p>
+                    ) : msg.role === 'assistant' ? (
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                     ) : (
                       <p>{msg.content}</p>

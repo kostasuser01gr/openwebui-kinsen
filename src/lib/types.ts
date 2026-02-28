@@ -43,6 +43,8 @@ export interface Message {
   content: string;
   userId?: string;
   createdAt: string;
+  pinned?: boolean;
+  deleted?: boolean;
 }
 
 // ── Rooms ───────────────────────────────────────────────────

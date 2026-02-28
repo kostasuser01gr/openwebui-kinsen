@@ -18,7 +18,11 @@ function getRequiredPermission(path: string, method: string): string | null {
   // Auth-only (any logged-in user)
   if (path.startsWith('/api/auth/')) return 'chat';
 
-  // Threads
+  // Threads — message-level actions (before broader thread match)
+  if (/^\/api\/threads\/[^/]+\/messages\/[^/]+$/.test(path) && method === 'DELETE') return 'chat';
+  if (/^\/api\/threads\/[^/]+\/messages\/[^/]+$/.test(path) && method === 'PUT') return 'chat:lock';
+  if (/^\/api\/threads\/[^/]+\/export$/.test(path)) return 'chat';
+  // Thread lock/unlock/archive/general
   if (/^\/api\/threads\/[^/]+\/lock$/.test(path)) return 'chat:lock';
   if (/^\/api\/threads\/[^/]+\/unlock$/.test(path)) return 'chat:lock';
   if (path.startsWith('/api/threads')) return 'chat';
