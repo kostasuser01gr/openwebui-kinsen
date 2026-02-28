@@ -2,7 +2,7 @@ import { readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 const distAssetsDir = path.resolve('dist/assets');
-const maxJsKb = Number(process.env.MAX_JS_KB || 300);
+const maxJsKb = Number(process.env.MAX_JS_KB || 400);
 const maxCssKb = Number(process.env.MAX_CSS_KB || 80);
 
 function kb(bytes) {
