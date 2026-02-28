@@ -6,6 +6,9 @@ interface Macro {
   title: string;
   promptTemplate: string;
   global: boolean;
+  category?: string;
+  order?: number;
+  pinned?: boolean;
   createdAt: string;
 }
 
@@ -20,9 +23,12 @@ export function MacrosPanel({ token, userRole, onClose, onUseMacro }: MacrosPane
   const [macros, setMacros] = useState<Macro[]>([]);
   const [title, setTitle] = useState('');
   const [promptTemplate, setPromptTemplate] = useState('');
+  const [category, setCategory] = useState('');
   const [isGlobal, setIsGlobal] = useState(false);
   const [error, setError] = useState('');
   const [importing, setImporting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editFields, setEditFields] = useState<Partial<Macro>>({});
   const fileRef = useRef<HTMLInputElement>(null);
 
   const auth = (extra?: Record<string, string>) => ({
@@ -53,17 +59,45 @@ export function MacrosPanel({ token, userRole, onClose, onUseMacro }: MacrosPane
       body: JSON.stringify({
         title: title.trim(),
         promptTemplate: promptTemplate.trim(),
+        category: category.trim() || undefined,
         global: isGlobal && userRole === 'admin',
       }),
     });
     if (res.ok) {
       setTitle('');
       setPromptTemplate('');
+      setCategory('');
       setIsGlobal(false);
       load();
     } else {
       const d = (await res.json()) as { error?: string };
       setError(d.error ?? 'Failed to create macro.');
+    }
+  };
+
+  const startEdit = (m: Macro) => {
+    setEditingId(m.id);
+    setEditFields({
+      title: m.title,
+      promptTemplate: m.promptTemplate,
+      category: m.category ?? '',
+      order: m.order,
+      pinned: m.pinned ?? false,
+    });
+  };
+
+  const saveEdit = async (id: string) => {
+    const res = await fetch('/api/macros', {
+      method: 'PUT',
+      headers: auth({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ id, ...editFields }),
+    });
+    if (res.ok) {
+      setEditingId(null);
+      load();
+    } else {
+      const d = (await res.json()) as { error?: string };
+      setError(d.error ?? 'Failed to update macro.');
     }
   };
 
@@ -134,10 +168,15 @@ export function MacrosPanel({ token, userRole, onClose, onUseMacro }: MacrosPane
             onChange={(e) => setTitle(e.target.value)}
           />
           <textarea
-            placeholder="Prompt template (e.g. 'Summarize the following:\n\n{{input}}')"
+            placeholder="Prompt template"
             value={promptTemplate}
             onChange={(e) => setPromptTemplate(e.target.value)}
             rows={3}
+          />
+          <input
+            placeholder="Category (optional, e.g. 'Writing')"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
           />
           {userRole === 'admin' && (
             <label className="checkbox-label">
@@ -182,27 +221,92 @@ export function MacrosPanel({ token, userRole, onClose, onUseMacro }: MacrosPane
         <ul className="macros-full-list">
           {macros.map((m) => (
             <li key={m.id} className="macro-item">
-              <div className="macro-item-header">
-                <strong>{m.title}</strong>
-                {m.global && <span className="macro-global-badge">global</span>}
-              </div>
-              <p className="macro-prompt">{m.promptTemplate.slice(0, 120)}…</p>
-              <div className="macro-item-actions">
-                {onUseMacro && (
-                  <button
-                    className="btn-small"
-                    onClick={() => {
-                      onUseMacro(m.promptTemplate);
-                      onClose();
-                    }}
-                  >
-                    Use
-                  </button>
-                )}
-                <button className="btn-small btn-danger" onClick={() => handleDelete(m.id)}>
-                  Delete
-                </button>
-              </div>
+              {editingId === m.id ? (
+                <div className="macro-edit-form">
+                  <input
+                    value={editFields.title ?? ''}
+                    onChange={(e) => setEditFields((f) => ({ ...f, title: e.target.value }))}
+                    placeholder="Title"
+                  />
+                  <textarea
+                    value={editFields.promptTemplate ?? ''}
+                    onChange={(e) =>
+                      setEditFields((f) => ({ ...f, promptTemplate: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="Prompt template"
+                  />
+                  <input
+                    value={editFields.category ?? ''}
+                    onChange={(e) => setEditFields((f) => ({ ...f, category: e.target.value }))}
+                    placeholder="Category (optional)"
+                  />
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={editFields.pinned ?? false}
+                        onChange={(e) => setEditFields((f) => ({ ...f, pinned: e.target.checked }))}
+                      />
+                      Pinned
+                    </label>
+                    <input
+                      type="number"
+                      style={{ width: 80 }}
+                      value={editFields.order ?? ''}
+                      onChange={(e) =>
+                        setEditFields((f) => ({
+                          ...f,
+                          order: e.target.value ? Number(e.target.value) : undefined,
+                        }))
+                      }
+                      placeholder="Order"
+                      min={0}
+                    />
+                  </div>
+                  <div className="macro-edit-actions">
+                    <button
+                      type="button"
+                      className="btn-small btn-primary"
+                      onClick={() => saveEdit(m.id)}
+                    >
+                      Save
+                    </button>
+                    <button type="button" className="btn-small" onClick={() => setEditingId(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="macro-item-header">
+                    {m.pinned && <span className="macro-pinned-badge">📌</span>}
+                    <strong>{m.title}</strong>
+                    {m.global && <span className="macro-global-badge">global</span>}
+                    {m.category && <span className="macro-category-badge">{m.category}</span>}
+                  </div>
+                  <p className="macro-prompt">{m.promptTemplate.slice(0, 120)}…</p>
+                  <div className="macro-item-actions">
+                    {onUseMacro && (
+                      <button
+                        className="btn-small"
+                        onClick={() => {
+                          onUseMacro(m.promptTemplate);
+                          onClose();
+                        }}
+                      >
+                        Use
+                      </button>
+                    )}
+                    <button className="btn-small" onClick={() => startEdit(m)}>
+                      Edit
+                    </button>
+                    <button className="btn-small btn-danger" onClick={() => handleDelete(m.id)}>
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
             </li>
           ))}
           {!macros.length && <li className="macro-empty">No quick actions yet.</li>}

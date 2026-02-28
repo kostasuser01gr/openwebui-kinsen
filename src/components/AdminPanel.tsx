@@ -38,13 +38,22 @@ interface AdminPanelProps {
   onBack: () => void;
 }
 
-type Tab = 'users' | 'sessions' | 'shortcuts' | 'audit';
+type Tab = 'users' | 'rooms' | 'sessions' | 'shortcuts' | 'audit';
+
+interface RoomInfo {
+  id: string;
+  name: string;
+  locked: boolean;
+  createdAt: string;
+}
 
 export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: AdminPanelProps) {
   const [tab, setTab] = useState<Tab>('users');
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
+  const [rooms, setRooms] = useState<RoomInfo[]>([]);
+  const [roomMsg, setRoomMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Create user
@@ -72,6 +81,7 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
 
   useEffect(() => {
     if (tab === 'users') loadUsers();
+    else if (tab === 'rooms') loadRooms();
     else if (tab === 'sessions') loadSessions();
     else if (tab === 'shortcuts') loadShortcuts();
     else if (tab === 'audit') loadAudit();
@@ -86,6 +96,33 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
       /* ignore */
     }
     setLoading(false);
+  };
+
+  const loadRooms = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/rooms', { headers: auth() });
+      if (res.ok) setRooms((await res.json()) as RoomInfo[]);
+    } catch {
+      /* ignore */
+    }
+    setLoading(false);
+  };
+
+  const toggleRoomLock = async (room: RoomInfo) => {
+    setRoomMsg('');
+    const action = room.locked ? 'unlock' : 'lock';
+    const res = await fetch(`/api/rooms/${room.id}/${action}`, {
+      method: 'POST',
+      headers: auth(),
+    });
+    if (res.ok) {
+      setRoomMsg(`Room "${room.name}" ${action}ed.`);
+      loadRooms();
+    } else {
+      const d = (await res.json()) as { error?: string };
+      setRoomMsg(d.error ?? `Failed to ${action} room.`);
+    }
   };
 
   const loadSessions = async () => {
@@ -221,7 +258,7 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
       </header>
 
       <nav className="admin-tabs">
-        {(['users', 'sessions', 'shortcuts', 'audit'] as Tab[]).map((t) => (
+        {(['users', 'rooms', 'sessions', 'shortcuts', 'audit'] as Tab[]).map((t) => (
           <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>
             {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
@@ -229,6 +266,45 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
       </nav>
 
       <main className="admin-content">
+        {/* ── Rooms ─────────────────────────────────────────── */}
+        {tab === 'rooms' && (
+          <div className="admin-section">
+            <h2>Room Management</h2>
+            <p className="text-muted" style={{ marginBottom: '1rem', fontSize: '0.875rem' }}>
+              Lock a room to restrict new thread creation. Existing threads are unaffected.
+            </p>
+            {roomMsg && (
+              <p
+                className={roomMsg.includes('Failed') ? 'error-text' : 'success-text'}
+                style={{ marginBottom: '0.75rem' }}
+              >
+                {roomMsg}
+              </p>
+            )}
+            {loading ? (
+              <p>Loading…</p>
+            ) : (
+              <ul className="rooms-list">
+                {rooms.map((r) => (
+                  <li key={r.id} className="rooms-list-item">
+                    <span className="room-name">{r.name}</span>
+                    <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                      #{r.id}
+                    </span>
+                    <span className={r.locked ? 'room-locked-badge' : 'room-unlocked-badge'}>
+                      {r.locked ? '🔒 Locked' : '🔓 Open'}
+                    </span>
+                    <button className="btn-small" onClick={() => toggleRoomLock(r)}>
+                      {r.locked ? 'Unlock' : 'Lock'}
+                    </button>
+                  </li>
+                ))}
+                {!rooms.length && <li className="macro-empty">No rooms found.</li>}
+              </ul>
+            )}
+          </div>
+        )}
+
         {/* ── Users ─────────────────────────────────────────── */}
         {tab === 'users' && (
           <div className="admin-section">

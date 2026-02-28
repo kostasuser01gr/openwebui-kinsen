@@ -1472,6 +1472,269 @@ body {
   }
 }
 
+/* ===== Saved Accounts ===== */
+.saved-accounts {
+  margin-bottom: 0.25rem;
+}
+
+.saved-accounts-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 0.375rem;
+}
+
+.saved-accounts-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: 0.25rem;
+}
+
+.saved-account-btn {
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.saved-account-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ===== Thread List Header / Archive Toggle ===== */
+.thread-list-header {
+  padding: 0.2rem 0.75rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-archived-toggle {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.btn-archived-toggle:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.btn-archived-toggle.active {
+  background: var(--warning);
+  border-color: var(--warning);
+  color: #fff;
+}
+
+/* ===== Command Palette ===== */
+.composer {
+  position: relative;
+}
+
+.cmd-palette {
+  position: absolute;
+  bottom: 100%;
+  left: 1.25rem;
+  right: 1.25rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 100;
+  margin-bottom: 4px;
+}
+
+.cmd-palette-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  transition: background 0.1s;
+}
+
+.cmd-palette-item:last-child {
+  border-bottom: none;
+}
+
+.cmd-palette-item:hover {
+  background: var(--bg-secondary);
+}
+
+.cmd-palette-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmd-palette-category {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* ===== Macro category / pinned badges ===== */
+.macro-category-badge {
+  font-size: 0.7rem;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.macro-pinned-badge {
+  font-size: 0.82rem;
+  color: var(--warning);
+  flex-shrink: 0;
+}
+
+/* ===== Macro inline edit ===== */
+.macro-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+}
+
+.macro-edit-form input,
+.macro-edit-form textarea,
+.macro-edit-form select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+
+.macro-edit-form input:focus,
+.macro-edit-form textarea:focus,
+.macro-edit-form select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.macro-edit-actions {
+  display: flex;
+  gap: 0.375rem;
+}
+
+/* ===== Profile extras ===== */
+.profile-section {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.profile-section h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.profile-field-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.625rem;
+}
+
+.profile-field-row label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
+.profile-field-row input,
+.profile-field-row select {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.profile-field-row input:focus,
+.profile-field-row select:focus {
+  border-color: var(--accent);
+}
+
+/* ===== Rooms admin tab ===== */
+.rooms-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.rooms-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.room-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.room-locked-badge {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: var(--danger);
+  color: #fff;
+}
+
+.room-unlocked-badge {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: var(--success);
+  color: #fff;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .chat-sidebar {

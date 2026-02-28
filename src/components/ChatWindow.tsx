@@ -79,6 +79,9 @@ export function ChatWindow({
   const [showArchived, setShowArchived] = useState(false);
   const [showCmdPalette, setShowCmdPalette] = useState(false);
   const [cmdFilter, setCmdFilter] = useState('');
+  const [profileName, setProfileName] = useState('');
+  const [profileLang, setProfileLang] = useState<'en' | 'el'>('en');
+  const [profileMsg, setProfileMsg] = useState('');
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -95,6 +98,7 @@ export function ChatWindow({
   useEffect(() => {
     loadThreads();
     loadMacros();
+    loadProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -136,6 +140,37 @@ export function ChatWindow({
     } catch {
       /* ignore */
     }
+  };
+
+  const loadProfile = async () => {
+    try {
+      const res = await fetch('/api/user/profile', { headers: auth() });
+      if (res.ok) {
+        const data = (await res.json()) as {
+          name?: string;
+          preferences?: { language?: string };
+        };
+        setProfileName(data.name ?? user?.name ?? '');
+        setProfileLang((data.preferences?.language as 'en' | 'el') ?? 'en');
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const handleProfileSave = async (e: FormEvent) => {
+    e.preventDefault();
+    setProfileMsg('');
+    const res = await fetch('/api/user/profile', {
+      method: 'PUT',
+      headers: auth({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        name: profileName.trim() || undefined,
+        preferences: { language: profileLang },
+      }),
+    });
+    const data = (await res.json()) as { ok?: boolean; error?: string };
+    setProfileMsg(data.ok ? '✓ Profile saved.' : (data.error ?? 'Failed.'));
   };
 
   const newThread = async () => {
@@ -573,9 +608,44 @@ export function ChatWindow({
                 ✕ Close
               </button>
             </div>
-            <p className="profile-name">{user?.name}</p>
 
-            <form className="pin-change-form" onSubmit={handlePinChange}>
+            {/* Display name + language */}
+            <form className="profile-section" onSubmit={handleProfileSave}>
+              <h3>Account Settings</h3>
+              <div className="profile-field-row">
+                <label htmlFor="profile-name">Display Name</label>
+                <input
+                  id="profile-name"
+                  type="text"
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  maxLength={50}
+                  placeholder="Your display name"
+                />
+              </div>
+              <div className="profile-field-row">
+                <label htmlFor="profile-lang">Language</label>
+                <select
+                  id="profile-lang"
+                  value={profileLang}
+                  onChange={(e) => setProfileLang(e.target.value as 'en' | 'el')}
+                >
+                  <option value="en">English</option>
+                  <option value="el">Ελληνικά</option>
+                </select>
+              </div>
+              {profileMsg && (
+                <p className={profileMsg.startsWith('✓') ? 'success-text' : 'error-text'}>
+                  {profileMsg}
+                </p>
+              )}
+              <button type="submit" className="btn-primary">
+                Save Profile
+              </button>
+            </form>
+
+            {/* PIN change */}
+            <form className="profile-section pin-change-form" onSubmit={handlePinChange}>
               <h3>Change PIN</h3>
               <div className="form-row">
                 <input
