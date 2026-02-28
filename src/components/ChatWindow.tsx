@@ -14,6 +14,7 @@ interface Thread {
   userId: string;
   roomId: string;
   locked: boolean;
+  archived?: boolean;
   createdAt: string;
   updatedAt: string;
   messageCount: number;
@@ -33,6 +34,9 @@ interface Macro {
   title: string;
   promptTemplate: string;
   global: boolean;
+  category?: string;
+  order?: number;
+  pinned?: boolean;
 }
 
 interface ChatWindowProps {
@@ -72,6 +76,9 @@ export function ChatWindow({
   const [pinNew, setPinNew] = useState('');
   const [pinMsg, setPinMsg] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [showCmdPalette, setShowCmdPalette] = useState(false);
+  const [cmdFilter, setCmdFilter] = useState('');
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -153,6 +160,20 @@ export function ChatWindow({
     if (currentThread?.id === threadId) {
       setCurrentThread(remaining[0] ?? null);
       setMessages([]);
+    }
+  };
+
+  const archiveThread = async (thread: Thread) => {
+    const next = !thread.archived;
+    const res = await fetch(`/api/threads/${thread.id}`, {
+      method: 'PUT',
+      headers: auth({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ archived: next }),
+    });
+    if (res.ok) {
+      const updated = (await res.json()) as Thread;
+      setThreads((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      if (currentThread?.id === updated.id) setCurrentThread(updated);
     }
   };
 
@@ -329,6 +350,27 @@ export function ChatWindow({
     }
   };
 
+  const quoteMessage = (content: string) => {
+    const quoted = content
+      .split('\n')
+      .map((line) => `> ${line}`)
+      .join('\n');
+    setInput((prev) => (prev ? `${quoted}\n\n${prev}` : `${quoted}\n\n`));
+    textareaRef.current?.focus();
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setInput(val);
+    if (val.startsWith('/') && !val.includes('\n')) {
+      setCmdFilter(val.slice(1).toLowerCase());
+      setShowCmdPalette(true);
+    } else {
+      setShowCmdPalette(false);
+      setCmdFilter('');
+    }
+  };
+
   const handlePinChange = async (e: FormEvent) => {
     e.preventDefault();
     setPinMsg('');
@@ -350,9 +392,12 @@ export function ChatWindow({
   };
 
   const canLock = user?.role === 'coordinator' || user?.role === 'admin';
-  const filteredThreads = threads.filter((t) =>
-    t.title.toLowerCase().includes(threadSearch.toLowerCase()),
+  const filteredThreads = threads.filter(
+    (t) =>
+      (showArchived ? t.archived : !t.archived) &&
+      t.title.toLowerCase().includes(threadSearch.toLowerCase()),
   );
+  const cmdMacros = macros.filter((m) => !cmdFilter || m.title.toLowerCase().includes(cmdFilter));
 
   return (
     <div className={`chat-layout ${darkMode ? 'dark' : ''}`}>
@@ -392,6 +437,16 @@ export function ChatWindow({
           value={threadSearch}
           onChange={(e) => setThreadSearch(e.target.value)}
         />
+
+        <div className="thread-list-header">
+          <button
+            className={`btn-archived-toggle ${showArchived ? 'active' : ''}`}
+            title={showArchived ? 'Show active threads' : 'Show archived threads'}
+            onClick={() => setShowArchived((v) => !v)}
+          >
+            {showArchived ? '📂 Archived' : '📁 Active'}
+          </button>
+        </div>
 
         <ul className="thread-list">
           {filteredThreads.map((t) => (
@@ -434,15 +489,27 @@ export function ChatWindow({
                 )}
                 <button
                   className="btn-icon-sm"
-                  title="Rename"
+                  title={t.archived ? 'Unarchive' : 'Archive'}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setRenaming(t.id);
-                    setRenameValue(t.title);
+                    archiveThread(t);
                   }}
                 >
-                  ✎
+                  {t.archived ? '↩' : '🗄'}
                 </button>
+                {!t.archived && (
+                  <button
+                    className="btn-icon-sm"
+                    title="Rename"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRenaming(t.id);
+                      setRenameValue(t.title);
+                    }}
+                  >
+                    ✎
+                  </button>
+                )}
                 <button
                   className="btn-icon-sm btn-danger-hover"
                   title="Delete"
@@ -456,7 +523,11 @@ export function ChatWindow({
               </div>
             </li>
           ))}
-          {!filteredThreads.length && <li className="thread-empty">No threads yet.</li>}
+          {!filteredThreads.length && (
+            <li className="thread-empty">
+              {showArchived ? 'No archived threads.' : 'No threads yet.'}
+            </li>
+          )}
         </ul>
 
         {/* Quick Actions */}
@@ -572,6 +643,13 @@ export function ChatWindow({
                     >
                       {copied === msg.id ? '✓' : '⎘'}
                     </button>
+                    <button
+                      className="btn-icon-sm"
+                      title="Quote message"
+                      onClick={() => quoteMessage(msg.content)}
+                    >
+                      ❝
+                    </button>
                   </div>
                   <div className="message-body">
                     {msg.role === 'assistant' ? (
@@ -613,13 +691,43 @@ export function ChatWindow({
                 </div>
               ) : (
                 <>
+                  {showCmdPalette && cmdMacros.length > 0 && (
+                    <ul className="cmd-palette">
+                      {cmdMacros.slice(0, 8).map((m) => (
+                        <li key={m.id}>
+                          <button
+                            type="button"
+                            className="cmd-palette-item"
+                            onClick={() => {
+                              setInput(m.promptTemplate);
+                              setShowCmdPalette(false);
+                              setCmdFilter('');
+                              textareaRef.current?.focus();
+                            }}
+                          >
+                            <span className="cmd-palette-title">{m.title}</span>
+                            {m.category && (
+                              <span className="cmd-palette-category">{m.category}</span>
+                            )}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   <textarea
                     ref={textareaRef}
                     className="composer-textarea"
-                    placeholder={`Message ${currentThread.title}… (Enter to send, Shift+Enter for newline)`}
+                    placeholder={`Message ${currentThread.title}… (/ for macros, Enter to send)`}
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
+                    onChange={handleInputChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape' && showCmdPalette) {
+                        setShowCmdPalette(false);
+                        setCmdFilter('');
+                        return;
+                      }
+                      handleKeyDown(e);
+                    }}
                     disabled={isStreaming}
                     rows={2}
                   />

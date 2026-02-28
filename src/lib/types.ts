@@ -30,6 +30,7 @@ export interface Thread {
   locked: boolean;
   lockedBy?: string;
   lockedAt?: string;
+  archived?: boolean;
   createdAt: string;
   updatedAt: string;
   messageCount: number;
@@ -59,6 +60,9 @@ export interface Macro {
   title: string;
   promptTemplate: string;
   global: boolean;
+  category?: string;
+  order?: number;
+  pinned?: boolean;
   createdAt: string;
 }
 

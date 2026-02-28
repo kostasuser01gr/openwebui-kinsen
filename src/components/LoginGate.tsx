@@ -1,4 +1,29 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
+
+const ACCOUNTS_KEY = 'kinsen:accounts';
+
+interface SavedAccount {
+  name: string;
+  lastLogin: string;
+}
+
+function loadSavedAccounts(): SavedAccount[] {
+  try {
+    return JSON.parse(localStorage.getItem(ACCOUNTS_KEY) ?? '[]') as SavedAccount[];
+  } catch {
+    return [];
+  }
+}
+
+function saveAccount(name: string): void {
+  try {
+    const accounts = loadSavedAccounts().filter((a) => a.name !== name);
+    accounts.unshift({ name, lastLogin: new Date().toISOString() });
+    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts.slice(0, 5)));
+  } catch {
+    /* ignore */
+  }
+}
 
 interface UserInfo {
   id: string;
@@ -30,6 +55,11 @@ export function LoginGate({ onSuccess, darkMode }: LoginGateProps) {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
+
+  useEffect(() => {
+    setSavedAccounts(loadSavedAccounts());
+  }, []);
 
   const switchMode = (next: AuthMode) => {
     setMode(next);
@@ -71,7 +101,10 @@ export function LoginGate({ onSuccess, darkMode }: LoginGateProps) {
         return;
       }
 
-      if (data.user && data.token) onSuccess(data.user, data.token);
+      if (data.user && data.token) {
+        saveAccount(data.user.name);
+        onSuccess(data.user, data.token);
+      }
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -132,7 +165,10 @@ export function LoginGate({ onSuccess, darkMode }: LoginGateProps) {
         return;
       }
 
-      if (data.user && data.token) onSuccess(data.user, data.token);
+      if (data.user && data.token) {
+        saveAccount(data.user.name);
+        onSuccess(data.user, data.token);
+      }
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -171,6 +207,24 @@ export function LoginGate({ onSuccess, darkMode }: LoginGateProps) {
         {/* ── Sign In form ── */}
         {mode === 'signin' && (
           <form onSubmit={handleSignIn} className="login-form">
+            {savedAccounts.length > 0 && (
+              <div className="saved-accounts">
+                <p className="saved-accounts-label">Quick sign-in:</p>
+                <div className="saved-accounts-list">
+                  {savedAccounts.map((a) => (
+                    <button
+                      key={a.name}
+                      type="button"
+                      className="saved-account-btn"
+                      onClick={() => setSiName(a.name)}
+                      disabled={loading}
+                    >
+                      {a.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="form-group">
               <label htmlFor="si-name">Name</label>
               <input

@@ -21,7 +21,14 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     )
   ).filter(Boolean) as Macro[];
 
-  macros.sort((a, b) => a.title.localeCompare(b.title));
+  macros.sort((a, b) => {
+    // Pinned first, then by order, then alphabetically
+    if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+    const ao = a.order ?? 9999;
+    const bo = b.order ?? 9999;
+    if (ao !== bo) return ao - bo;
+    return a.title.localeCompare(b.title);
+  });
   return new Response(JSON.stringify(macros), { headers: { 'Content-Type': 'application/json' } });
 };
 
@@ -74,6 +81,62 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     status: 201,
     headers: { 'Content-Type': 'application/json' },
   });
+};
+
+// PUT /api/macros — update macro fields
+export const onRequestPut: PagesFunction<Env> = async (context) => {
+  const { env, request } = context;
+  const user = (context.data as Record<string, unknown>).user as UserSession;
+
+  let body: {
+    id?: string;
+    title?: string;
+    promptTemplate?: string;
+    category?: string;
+    order?: number;
+    pinned?: boolean;
+  };
+  try {
+    body = (await request.json()) as typeof body;
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const id = body.id ?? '';
+  if (!id) {
+    return new Response(JSON.stringify({ error: 'id is required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const macro = (await env.KV.get(`macro:${id}`, 'json')) as Macro | null;
+  if (!macro) {
+    return new Response(JSON.stringify({ error: 'Not found' }), {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (macro.userId !== user.userId && user.role !== 'admin') {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (body.title !== undefined) macro.title = body.title.trim().slice(0, 80);
+  if (body.promptTemplate !== undefined)
+    macro.promptTemplate = body.promptTemplate.trim().slice(0, 2000);
+  if (body.category !== undefined) macro.category = body.category.trim().slice(0, 40) || undefined;
+  if (body.order !== undefined) macro.order = body.order;
+  if (body.pinned !== undefined) macro.pinned = body.pinned;
+
+  await env.KV.put(`macro:${id}`, JSON.stringify(macro));
+  return new Response(JSON.stringify(macro), { headers: { 'Content-Type': 'application/json' } });
 };
 
 // DELETE /api/macros?id=xxx

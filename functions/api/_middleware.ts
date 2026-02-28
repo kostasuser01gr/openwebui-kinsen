@@ -24,6 +24,8 @@ function getRequiredPermission(path: string, method: string): string | null {
   if (path.startsWith('/api/threads')) return 'chat';
 
   // Rooms
+  if (/^\/api\/rooms\/[^/]+\/lock$/.test(path)) return 'chat:lock';
+  if (/^\/api\/rooms\/[^/]+\/unlock$/.test(path)) return 'chat:lock';
   if (path === '/api/rooms' && method === 'POST') return 'admin:users:write';
   if (path.startsWith('/api/rooms')) return 'chat';
 

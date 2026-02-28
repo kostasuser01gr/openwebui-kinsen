@@ -46,8 +46,9 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
     });
   }
 
-  const body = (await request.json()) as { title?: string };
+  const body = (await request.json()) as { title?: string; archived?: boolean };
   if (body.title) thread.title = body.title.slice(0, 100);
+  if (body.archived !== undefined) thread.archived = body.archived;
   thread.updatedAt = new Date().toISOString();
 
   await env.KV.put(`thread:${threadId}`, JSON.stringify(thread));
