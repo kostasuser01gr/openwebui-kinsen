@@ -109,10 +109,10 @@ export interface Env {
   SESSION_SIGNING_SECRET: string;
   ADMIN_TOKEN?: string;
   // Feature flags (Pages vars, not secrets)
-  AUTH_MODE?: string;           // "admin_only" | "open"  (default: admin_only)
-  AI_PROVIDER?: string;         // "workers_ai" | "none"  (default: workers_ai)
-  DEFAULT_ROOM_ID?: string;     // default: "global"
-  ALLOW_OWNER_LOCK?: string;    // "true" | "false"       (default: false)
-  RATE_LIMIT_WINDOW_SEC?: string;    // default: "900"
-  RATE_LIMIT_MAX_ATTEMPTS?: string;  // default: "10"
+  AUTH_MODE?: string; // "admin_only" | "open"  (default: admin_only)
+  AI_PROVIDER?: string; // "workers_ai" | "none"  (default: workers_ai)
+  DEFAULT_ROOM_ID?: string; // default: "global"
+  ALLOW_OWNER_LOCK?: string; // "true" | "false"       (default: false)
+  RATE_LIMIT_WINDOW_SEC?: string; // default: "900"
+  RATE_LIMIT_MAX_ATTEMPTS?: string; // default: "10"
 }

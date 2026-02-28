@@ -31,16 +31,18 @@ function putKV(key, value) {
   } catch (e) {
     console.error(`  FAIL ${key}: ${e.message}`);
   }
-  try { unlinkSync(tmpFile); } catch {}
+  try {
+    unlinkSync(tmpFile);
+  } catch {}
 }
 
 console.log('Seeding Kinsen Station AI local data…\n');
 
 const users = [
-  { name: 'Admin',       role: 'admin',       pin: '1234' },
-  { name: 'Coordinator', role: 'coordinator',  pin: '5678' },
-  { name: 'Alice',       role: 'user',         pin: '1111' },
-  { name: 'Bob',         role: 'user',         pin: '2222' },
+  { name: 'Admin', role: 'admin', pin: '1234' },
+  { name: 'Coordinator', role: 'coordinator', pin: '5678' },
+  { name: 'Alice', role: 'user', pin: '1111' },
+  { name: 'Bob', role: 'user', pin: '2222' },
 ];
 
 const userIndex = [];
@@ -66,10 +68,16 @@ putKV('user:index', userIndex);
 // Global quick-action macros
 const macroIndex = [];
 const globalMacros = [
-  { title: 'Summarize',        promptTemplate: 'Please summarize the conversation so far.' },
+  { title: 'Summarize', promptTemplate: 'Please summarize the conversation so far.' },
   { title: 'Translate → Greek', promptTemplate: 'Translate the following to Greek:\n\n' },
-  { title: 'Explain Simply',   promptTemplate: 'Explain the following in simple, plain language:\n\n' },
-  { title: 'Code Review',      promptTemplate: 'Review the following code and suggest improvements:\n\n```\n' },
+  {
+    title: 'Explain Simply',
+    promptTemplate: 'Explain the following in simple, plain language:\n\n',
+  },
+  {
+    title: 'Code Review',
+    promptTemplate: 'Review the following code and suggest improvements:\n\n```\n',
+  },
 ];
 
 for (const m of globalMacros) {

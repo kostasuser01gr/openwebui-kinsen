@@ -10,7 +10,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const indexKey = `thread:index:${user.userId}`;
   const ids = ((await env.KV.get(indexKey, 'json')) as string[] | null) ?? [];
-  if (!ids.length) return new Response(JSON.stringify([]), { headers: { 'Content-Type': 'application/json' } });
+  if (!ids.length)
+    return new Response(JSON.stringify([]), { headers: { 'Content-Type': 'application/json' } });
 
   const threads = (
     await Promise.all(ids.map((id) => env.KV.get(`thread:${id}`, 'json') as Promise<Thread | null>))

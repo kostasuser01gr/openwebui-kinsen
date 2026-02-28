@@ -11,9 +11,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
   const list = await env.KV.list({ prefix: 'room:' });
   const custom = (
-    await Promise.all(
-      list.keys.map((k) => env.KV.get(k.name, 'json') as Promise<Room | null>),
-    )
+    await Promise.all(list.keys.map((k) => env.KV.get(k.name, 'json') as Promise<Room | null>))
   ).filter(Boolean) as Room[];
 
   // Merge built-ins with custom rooms, deduplicate by id

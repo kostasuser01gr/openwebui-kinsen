@@ -10,7 +10,11 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     await Promise.all(ids.map((id) => env.KV.get(`macro:${id}`, 'json') as Promise<Macro | null>))
   ).filter(Boolean) as Macro[];
 
-  const payload = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), macros }, null, 2);
+  const payload = JSON.stringify(
+    { version: 1, exportedAt: new Date().toISOString(), macros },
+    null,
+    2,
+  );
 
   return new Response(payload, {
     headers: {

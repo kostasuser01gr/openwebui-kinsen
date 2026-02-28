@@ -1,11 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  FormEvent,
-  KeyboardEvent,
-} from 'react';
+import { useState, useEffect, useRef, useCallback, FormEvent, KeyboardEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -164,7 +157,10 @@ export function ChatWindow({
   };
 
   const renameThread = async (threadId: string) => {
-    if (!renameValue.trim()) { setRenaming(null); return; }
+    if (!renameValue.trim()) {
+      setRenaming(null);
+      return;
+    }
     const res = await fetch(`/api/threads/${threadId}`, {
       method: 'PUT',
       headers: auth({ 'Content-Type': 'application/json' }),
@@ -346,8 +342,11 @@ export function ChatWindow({
       body: JSON.stringify({ oldPin: pinOld, newPin: pinNew }),
     });
     const data = (await res.json()) as { ok?: boolean; error?: string };
-    setPinMsg(data.ok ? '✓ PIN changed successfully.' : data.error ?? 'Failed.');
-    if (data.ok) { setPinOld(''); setPinNew(''); }
+    setPinMsg(data.ok ? '✓ PIN changed successfully.' : (data.error ?? 'Failed.'));
+    if (data.ok) {
+      setPinOld('');
+      setPinNew('');
+    }
   };
 
   const canLock = user?.role === 'coordinator' || user?.role === 'admin';
@@ -411,7 +410,11 @@ export function ChatWindow({
                 />
               ) : (
                 <button className="thread-title-btn" onClick={() => setCurrentThread(t)}>
-                  {t.locked && <span className="lock-icon" title="Locked">🔒</span>}
+                  {t.locked && (
+                    <span className="lock-icon" title="Locked">
+                      🔒
+                    </span>
+                  )}
                   <span className="thread-name">{t.title}</span>
                   <span className="thread-count">{t.messageCount}</span>
                 </button>
@@ -421,7 +424,10 @@ export function ChatWindow({
                   <button
                     className="btn-icon-sm"
                     title={t.locked ? 'Unlock' : 'Lock'}
-                    onClick={(e) => { e.stopPropagation(); toggleLock(t); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleLock(t);
+                    }}
                   >
                     {t.locked ? '🔓' : '🔒'}
                   </button>
@@ -440,16 +446,17 @@ export function ChatWindow({
                 <button
                   className="btn-icon-sm btn-danger-hover"
                   title="Delete"
-                  onClick={(e) => { e.stopPropagation(); deleteThread(t.id); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteThread(t.id);
+                  }}
                 >
                   ✕
                 </button>
               </div>
             </li>
           ))}
-          {!filteredThreads.length && (
-            <li className="thread-empty">No threads yet.</li>
-          )}
+          {!filteredThreads.length && <li className="thread-empty">No threads yet.</li>}
         </ul>
 
         {/* Quick Actions */}
@@ -461,12 +468,19 @@ export function ChatWindow({
             <ul className="macros-list">
               {macros.map((m) => (
                 <li key={m.id}>
-                  <button className="macro-btn" onClick={() => {
-                    setInput(m.promptTemplate);
-                    setShowMacros(false);
-                    textareaRef.current?.focus();
-                  }}>
-                    {m.global && <span className="macro-global-dot" title="Global">●</span>}
+                  <button
+                    className="macro-btn"
+                    onClick={() => {
+                      setInput(m.promptTemplate);
+                      setShowMacros(false);
+                      textareaRef.current?.focus();
+                    }}
+                  >
+                    {m.global && (
+                      <span className="macro-global-dot" title="Global">
+                        ●
+                      </span>
+                    )}
                     {m.title}
                   </button>
                 </li>
@@ -484,7 +498,9 @@ export function ChatWindow({
             <div className="profile-header">
               <h2>Profile</h2>
               <span className={`role-badge role-${user?.role}`}>{user?.role}</span>
-              <button className="btn-small" onClick={() => setShowProfile(false)}>✕ Close</button>
+              <button className="btn-small" onClick={() => setShowProfile(false)}>
+                ✕ Close
+              </button>
             </div>
             <p className="profile-name">{user?.name}</p>
 
@@ -507,7 +523,9 @@ export function ChatWindow({
                   value={pinNew}
                   onChange={(e) => setPinNew(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 />
-                <button type="submit" className="btn-primary">Update</button>
+                <button type="submit" className="btn-primary">
+                  Update
+                </button>
               </div>
               {pinMsg && (
                 <p className={pinMsg.startsWith('✓') ? 'success-text' : 'error-text'}>{pinMsg}</p>
@@ -519,7 +537,9 @@ export function ChatWindow({
             <div className="chat-empty-content">
               <h1>⚡ Kinsen Station AI</h1>
               <p>Start a new thread to chat with your AI assistant.</p>
-              <button className="btn-primary" onClick={newThread}>+ New Thread</button>
+              <button className="btn-primary" onClick={newThread}>
+                + New Thread
+              </button>
             </div>
           </div>
         ) : (
@@ -574,7 +594,9 @@ export function ChatWindow({
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamContent}</ReactMarkdown>
                     ) : (
                       <span className="typing-dots">
-                        <span /><span /><span />
+                        <span />
+                        <span />
+                        <span />
                       </span>
                     )}
                   </div>
@@ -586,7 +608,9 @@ export function ChatWindow({
 
             <form className="composer" onSubmit={handleSubmit}>
               {currentThread.locked && !canLock ? (
-                <div className="locked-notice">🔒 This thread is locked. Only coordinators and admins can reply.</div>
+                <div className="locked-notice">
+                  🔒 This thread is locked. Only coordinators and admins can reply.
+                </div>
               ) : (
                 <>
                   <textarea

@@ -113,11 +113,16 @@ export function MacrosPanel({ token, userRole, onClose, onUseMacro }: MacrosPane
   };
 
   return (
-    <div className="macros-panel-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className="macros-panel-overlay"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div className="macros-panel">
         <div className="macros-panel-header">
           <h2>⚡ Quick Actions (Macros)</h2>
-          <button className="btn-icon" onClick={onClose}>✕</button>
+          <button className="btn-icon" onClick={onClose}>
+            ✕
+          </button>
         </div>
 
         {/* Create form */}
@@ -147,13 +152,21 @@ export function MacrosPanel({ token, userRole, onClose, onUseMacro }: MacrosPane
           {error && (
             <p className={error.startsWith('✓') ? 'success-text' : 'error-text'}>{error}</p>
           )}
-          <button type="submit" className="btn-primary">+ Create</button>
+          <button type="submit" className="btn-primary">
+            + Create
+          </button>
         </form>
 
         {/* Import / Export */}
         <div className="macros-io">
-          <button className="btn-small" onClick={handleExport}>⬇ Export JSON</button>
-          <button className="btn-small" onClick={() => fileRef.current?.click()} disabled={importing}>
+          <button className="btn-small" onClick={handleExport}>
+            ⬇ Export JSON
+          </button>
+          <button
+            className="btn-small"
+            onClick={() => fileRef.current?.click()}
+            disabled={importing}
+          >
             {importing ? 'Importing…' : '⬆ Import JSON'}
           </button>
           <input
@@ -176,7 +189,13 @@ export function MacrosPanel({ token, userRole, onClose, onUseMacro }: MacrosPane
               <p className="macro-prompt">{m.promptTemplate.slice(0, 120)}…</p>
               <div className="macro-item-actions">
                 {onUseMacro && (
-                  <button className="btn-small" onClick={() => { onUseMacro(m.promptTemplate); onClose(); }}>
+                  <button
+                    className="btn-small"
+                    onClick={() => {
+                      onUseMacro(m.promptTemplate);
+                      onClose();
+                    }}
+                  >
                     Use
                   </button>
                 )}

@@ -39,10 +39,7 @@ export async function writeAudit(
   }
 }
 
-export async function listAuditEntries(
-  env: Env,
-  limit = 100,
-): Promise<AuditEntry[]> {
+export async function listAuditEntries(env: Env, limit = 100): Promise<AuditEntry[]> {
   const list = await env.KV.list({ prefix: 'audit:', limit });
   if (!list.keys.length) return [];
   // Keys are time-ordered; sort descending (newest first)

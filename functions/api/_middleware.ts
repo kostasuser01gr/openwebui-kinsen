@@ -1,9 +1,6 @@
 // Central middleware: auth, RBAC, rate-limiting, brute-force, CORS
 import type { Env, UserRole } from '../../src/lib/types';
-import {
-  getSignedTokenFromRequest,
-  getSessionFromSignedToken,
-} from '../lib/auth-session';
+import { getSignedTokenFromRequest, getSessionFromSignedToken } from '../lib/auth-session';
 import { hasPermission } from '../../src/lib/users';
 
 const RATE_LIMIT_WINDOW = 60;
@@ -80,9 +77,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   }
 
   const ip =
-    request.headers.get('CF-Connecting-IP') ||
-    request.headers.get('x-forwarded-for') ||
-    'unknown';
+    request.headers.get('CF-Connecting-IP') || request.headers.get('x-forwarded-for') || 'unknown';
 
   // CSRF: block cross-origin state-changing requests
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
@@ -145,9 +140,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       const bruteKey = `brute:${ip}`;
       const cur = await env.KV.get(bruteKey);
       const n = cur ? parseInt(cur, 10) : 0;
-      context.waitUntil(
-        env.KV.put(bruteKey, String(n + 1), { expirationTtl: BRUTE_FORCE_WINDOW }),
-      );
+      context.waitUntil(env.KV.put(bruteKey, String(n + 1), { expirationTtl: BRUTE_FORCE_WINDOW }));
     } else if (isAuthEndpoint && response.status < 400) {
       context.waitUntil(env.KV.delete(`brute:${ip}`));
     }

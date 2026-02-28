@@ -69,11 +69,7 @@ export async function getAllUsers(env: Env): Promise<User[]> {
 }
 
 /** Admin-initiated PIN reset — no old PIN required */
-export async function resetPinForUser(
-  env: Env,
-  userId: string,
-  newPin: string,
-): Promise<void> {
+export async function resetPinForUser(env: Env, userId: string, newPin: string): Promise<void> {
   const pinHash = await hashPin(newPin, env.PIN_SALT_SECRET, userId);
   await env.KV.put(`auth:${userId}`, pinHash);
 }

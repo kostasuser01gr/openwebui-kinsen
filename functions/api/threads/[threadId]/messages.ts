@@ -33,10 +33,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     });
   }
 
-  const messages = ((await env.KV.get(
-    `thread:messages:${threadId}`,
-    'json',
-  )) as Message[] | null) ?? [];
+  const messages =
+    ((await env.KV.get(`thread:messages:${threadId}`, 'json')) as Message[] | null) ?? [];
 
   return new Response(JSON.stringify(messages), {
     headers: { 'Content-Type': 'application/json' },
@@ -87,10 +85,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     });
   }
 
-  const existing = ((await env.KV.get(
-    `thread:messages:${threadId}`,
-    'json',
-  )) as Message[] | null) ?? [];
+  const existing =
+    ((await env.KV.get(`thread:messages:${threadId}`, 'json')) as Message[] | null) ?? [];
 
   const userMsg: Message = {
     id: generateId(),

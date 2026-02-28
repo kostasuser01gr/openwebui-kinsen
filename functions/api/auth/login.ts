@@ -1,9 +1,5 @@
 import type { Env } from '../../../src/lib/types';
-import {
-  buildSessionCookie,
-  createSession,
-  isSecureRequest,
-} from '../../lib/auth-session';
+import { buildSessionCookie, createSession, isSecureRequest } from '../../lib/auth-session';
 import { loginUserByName } from '../../../src/lib/users';
 import { writeAudit } from '../../../src/lib/audit';
 

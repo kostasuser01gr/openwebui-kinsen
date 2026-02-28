@@ -82,7 +82,9 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
     try {
       const res = await fetch('/api/admin/users', { headers: auth() });
       if (res.ok) setUsers((await res.json()) as UserInfo[]);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     setLoading(false);
   };
 
@@ -91,7 +93,9 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
     try {
       const res = await fetch('/api/sessions', { headers: auth() });
       if (res.ok) setSessions((await res.json()) as SessionInfo[]);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     setLoading(false);
   };
 
@@ -99,7 +103,9 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
     try {
       const res = await fetch('/api/shortcuts', { headers: auth() });
       if (res.ok) setShortcuts((await res.json()) as any[]);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   const loadAudit = async () => {
@@ -107,7 +113,9 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
     try {
       const res = await fetch('/api/admin/audit?limit=200', { headers: auth() });
       if (res.ok) setAuditLog((await res.json()) as AuditEntry[]);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     setLoading(false);
   };
 
@@ -125,7 +133,11 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
         headers: auth({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ name: newName.trim(), role: newRole, pin: newPin }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string; user?: { id: string; name: string } };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        user?: { id: string; name: string };
+      };
       if (res.ok && data.user) {
         setCreateSuccess(`User "${data.user.name}" created (ID: ${data.user.id})`);
         setNewName('');
@@ -153,8 +165,11 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
         body: JSON.stringify({ pin: resetPin }),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
-      setResetMsg(data.ok ? '✓ PIN reset successfully.' : data.error ?? 'Failed.');
-      if (data.ok) { setResetUserId(''); setResetPin(''); }
+      setResetMsg(data.ok ? '✓ PIN reset successfully.' : (data.error ?? 'Failed.'));
+      if (data.ok) {
+        setResetUserId('');
+        setResetPin('');
+      }
     } catch {
       setResetMsg('Network error');
     }
@@ -191,7 +206,9 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
   return (
     <div className={`admin-layout ${darkMode ? 'dark' : ''}`}>
       <header className="admin-header">
-        <button className="btn-back" onClick={onBack}>&larr; Back to Chat</button>
+        <button className="btn-back" onClick={onBack}>
+          &larr; Back to Chat
+        </button>
         <h1>Admin Dashboard</h1>
         <div className="admin-header-actions">
           <span>
@@ -222,7 +239,11 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
                 <form onSubmit={handleCreateUser} className="create-user-form">
                   <h3>Create User</h3>
                   <div className="form-row">
-                    <input placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
+                    <input
+                      placeholder="Name"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                    />
                     <select value={newRole} onChange={(e) => setNewRole(e.target.value)}>
                       <option value="user">User</option>
                       <option value="coordinator">Coordinator</option>
@@ -261,26 +282,38 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
                     <button type="submit">Reset PIN</button>
                   </div>
                   {resetMsg && (
-                    <p className={resetMsg.startsWith('✓') ? 'success-text' : 'error-text'}>{resetMsg}</p>
+                    <p className={resetMsg.startsWith('✓') ? 'success-text' : 'error-text'}>
+                      {resetMsg}
+                    </p>
                   )}
                 </form>
               </>
             )}
 
-            {loading ? <p>Loading…</p> : (
+            {loading ? (
+              <p>Loading…</p>
+            ) : (
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>ID</th><th>Name</th><th>Role</th><th>Active</th>
-                    <th>Created</th><th>Last Login</th>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Active</th>
+                    <th>Created</th>
+                    <th>Last Login</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((u) => (
                     <tr key={u.id}>
-                      <td className="mono" title={u.id}>{u.id.slice(0, 8)}</td>
+                      <td className="mono" title={u.id}>
+                        {u.id.slice(0, 8)}
+                      </td>
                       <td>{u.name}</td>
-                      <td><span className={`role-badge role-${u.role}`}>{u.role}</span></td>
+                      <td>
+                        <span className={`role-badge role-${u.role}`}>{u.role}</span>
+                      </td>
                       <td>{u.active ? '✓' : '✗'}</td>
                       <td>{new Date(u.createdAt).toLocaleDateString()}</td>
                       <td>{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : 'Never'}</td>
@@ -296,12 +329,19 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
         {tab === 'sessions' && (
           <div className="admin-section">
             <h2>Session Moderation</h2>
-            {loading ? <p>Loading…</p> : (
+            {loading ? (
+              <p>Loading…</p>
+            ) : (
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>ID</th><th>Title</th><th>User</th>
-                    <th>Messages</th><th>Status</th><th>Updated</th><th>Actions</th>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>User</th>
+                    <th>Messages</th>
+                    <th>Status</th>
+                    <th>Updated</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -318,7 +358,10 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
                       </td>
                       <td>{new Date(s.updatedAt).toLocaleString()}</td>
                       <td>
-                        <button className="btn-small" onClick={() => handleToggleLock(s.id, s.locked)}>
+                        <button
+                          className="btn-small"
+                          onClick={() => handleToggleLock(s.id, s.locked)}
+                        >
                           {s.locked ? 'Unlock' : 'Lock'}
                         </button>
                       </td>
@@ -337,10 +380,22 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
             <form onSubmit={handleCreateShortcut} className="create-user-form">
               <h3>Create Shortcut</h3>
               <div className="form-row">
-                <input placeholder="Label" value={scLabel} onChange={(e) => setScLabel(e.target.value)} />
-                <input placeholder="Prompt text" value={scPrompt} onChange={(e) => setScPrompt(e.target.value)} />
+                <input
+                  placeholder="Label"
+                  value={scLabel}
+                  onChange={(e) => setScLabel(e.target.value)}
+                />
+                <input
+                  placeholder="Prompt text"
+                  value={scPrompt}
+                  onChange={(e) => setScPrompt(e.target.value)}
+                />
                 <label className="checkbox-label">
-                  <input type="checkbox" checked={scGlobal} onChange={(e) => setScGlobal(e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={scGlobal}
+                    onChange={(e) => setScGlobal(e.target.checked)}
+                  />
                   Global
                 </label>
                 <button type="submit">Create</button>
@@ -348,7 +403,12 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
             </form>
             <table className="admin-table">
               <thead>
-                <tr><th>Label</th><th>Prompt</th><th>Scope</th><th>Actions</th></tr>
+                <tr>
+                  <th>Label</th>
+                  <th>Prompt</th>
+                  <th>Scope</th>
+                  <th>Actions</th>
+                </tr>
               </thead>
               <tbody>
                 {shortcuts.map((sc: any) => (
@@ -357,7 +417,10 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
                     <td>{sc.prompt}</td>
                     <td>{sc.global ? 'Global' : 'Personal'}</td>
                     <td>
-                      <button className="btn-small btn-danger" onClick={() => handleDeleteShortcut(sc.id)}>
+                      <button
+                        className="btn-small btn-danger"
+                        onClick={() => handleDeleteShortcut(sc.id)}
+                      >
                         Delete
                       </button>
                     </td>
@@ -375,12 +438,17 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
             <button className="btn-small" onClick={loadAudit} style={{ marginBottom: '1rem' }}>
               ↺ Refresh
             </button>
-            {loading ? <p>Loading…</p> : (
+            {loading ? (
+              <p>Loading…</p>
+            ) : (
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Time</th><th>Actor</th><th>Action</th>
-                    <th>Target</th><th>IP</th>
+                    <th>Time</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Target</th>
+                    <th>IP</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -388,13 +456,19 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
                     <tr key={`${e.ts}:${e.id}`}>
                       <td className="mono">{new Date(e.ts).toLocaleString()}</td>
                       <td>{e.actorName ?? e.actorId}</td>
-                      <td><code>{e.action}</code></td>
+                      <td>
+                        <code>{e.action}</code>
+                      </td>
                       <td className="mono">{e.targetId ?? '—'}</td>
                       <td className="mono">{e.ip}</td>
                     </tr>
                   ))}
                   {!auditLog.length && (
-                    <tr><td colSpan={5} style={{ textAlign: 'center' }}>No audit entries found.</td></tr>
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center' }}>
+                        No audit entries found.
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>

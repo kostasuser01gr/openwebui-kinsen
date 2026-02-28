@@ -12,7 +12,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   ]);
 
   const allIds = [...new Set([...(userIds ?? []), ...(globalIds ?? [])])];
-  if (!allIds.length) return new Response(JSON.stringify([]), { headers: { 'Content-Type': 'application/json' } });
+  if (!allIds.length)
+    return new Response(JSON.stringify([]), { headers: { 'Content-Type': 'application/json' } });
 
   const macros = (
     await Promise.all(
