@@ -1,17 +1,23 @@
 import type { Env } from '../../../src/lib/types';
-import { buildSessionCookie, isSecureRequest } from '../../lib/auth-session';
+import {
+  buildSessionCookie,
+  createSession,
+  isSecureRequest,
+} from '../../lib/auth-session';
 import { loginUserByName } from '../../../src/lib/users';
+import { writeAudit } from '../../../src/lib/audit';
 
 interface LoginBody {
   name?: string;
   pin?: string;
 }
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction<Env> = async (context) => {
+  const { request, env } = context;
   try {
     const body = (await request.json()) as LoginBody;
-    const name = (body.name || '').trim();
-    const pin = body.pin || '';
+    const name = (body.name ?? '').trim();
+    const pin = body.pin ?? '';
 
     if (!name || !pin) {
       return new Response(JSON.stringify({ error: 'name and pin are required' }), {
@@ -27,12 +33,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       });
     }
 
-    const result = await loginUserByName(
-      env,
-      name,
-      pin,
-      request.headers.get('CF-Connecting-IP') || 'unknown',
-    );
+    const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+    const result = await loginUserByName(env, name, pin, ip);
 
     if (!result) {
       return new Response(JSON.stringify({ error: 'Invalid name or PIN' }), {
@@ -41,21 +43,27 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       });
     }
 
+    // Create signed session token
+    const signedToken = await createSession(env, result.session);
+
+    context.waitUntil(
+      writeAudit(env, { id: result.user.id, name: result.user.name }, 'auth.login', {
+        ip,
+        ua: request.headers.get('User-Agent') ?? undefined,
+      }),
+    );
+
     return new Response(
       JSON.stringify({
         ok: true,
-        token: result.token,
-        user: {
-          id: result.user.id,
-          name: result.user.name,
-          role: result.user.role,
-        },
+        token: signedToken,
+        user: { id: result.user.id, name: result.user.name, role: result.user.role },
       }),
       {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Set-Cookie': buildSessionCookie(result.token, isSecureRequest(request)),
+          'Set-Cookie': buildSessionCookie(signedToken, isSecureRequest(request)),
         },
       },
     );

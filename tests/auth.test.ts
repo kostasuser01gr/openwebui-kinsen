@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   sha256,
+  hmacSha256,
   hashPin,
+  signToken,
+  verifyToken,
   generateSessionId,
   generateUserId,
   parseCookies,
@@ -22,26 +25,88 @@ describe('Crypto utilities', () => {
     expect(h1).not.toBe(h2);
   });
 
-  it('hashPin uses salt correctly', async () => {
-    const h1 = await hashPin('1234', 'salt-a');
-    const h2 = await hashPin('1234', 'salt-b');
-    expect(h1).not.toBe(h2); // different salts = different hashes
+  it('hmacSha256 produces consistent output', async () => {
+    const h1 = await hmacSha256('my-secret', 'my-message');
+    const h2 = await hmacSha256('my-secret', 'my-message');
+    expect(h1).toBe(h2);
+    expect(h1).toHaveLength(64); // HMAC-SHA256 hex = 64 chars
   });
 
-  it('hashPin is deterministic with same salt', async () => {
-    const h1 = await hashPin('5678', 'my-salt');
-    const h2 = await hashPin('5678', 'my-salt');
+  it('hmacSha256 differs with different secrets', async () => {
+    const h1 = await hmacSha256('secret-a', 'message');
+    const h2 = await hmacSha256('secret-b', 'message');
+    expect(h1).not.toBe(h2);
+  });
+
+  it('hmacSha256 differs with different messages', async () => {
+    const h1 = await hmacSha256('secret', 'message-a');
+    const h2 = await hmacSha256('secret', 'message-b');
+    expect(h1).not.toBe(h2);
+  });
+
+  it('hashPin uses HMAC-SHA256 with userId embedded', async () => {
+    const h1 = await hashPin('1234', 'salt', 'user-abc');
+    const h2 = await hashPin('1234', 'salt', 'user-xyz');
+    expect(h1).not.toBe(h2); // different userId = different hash
+  });
+
+  it('hashPin is deterministic with same args', async () => {
+    const h1 = await hashPin('5678', 'my-salt', 'user-001');
+    const h2 = await hashPin('5678', 'my-salt', 'user-001');
     expect(h1).toBe(h2);
   });
 
-  it('hashPin uses format SHA256(pin + salt) per spec', async () => {
+  it('hashPin uses HMAC(key=salt, msg=userId:pin)', async () => {
     const pin = '1234';
     const salt = 'test-salt';
-    const expected = await sha256(`${pin}${salt}`);
-    const actual = await hashPin(pin, salt);
+    const userId = 'user-001';
+    const expected = await hmacSha256(salt, `${userId}:${pin}`);
+    const actual = await hashPin(pin, salt, userId);
     expect(actual).toBe(expected);
   });
 
+  it('hashPin differs with different salt', async () => {
+    const h1 = await hashPin('1234', 'salt-a', 'user-001');
+    const h2 = await hashPin('1234', 'salt-b', 'user-001');
+    expect(h1).not.toBe(h2);
+  });
+});
+
+describe('Signed token utilities', () => {
+  const SECRET = 'test-signing-secret';
+
+  it('signToken produces a dot-separated token.signature string', async () => {
+    const signed = await signToken('rawtoken123', SECRET);
+    expect(signed).toMatch(/^rawtoken123\.[0-9a-f]{64}$/);
+  });
+
+  it('verifyToken returns rawToken for a valid signed token', async () => {
+    const raw = 'myrawtoken';
+    const signed = await signToken(raw, SECRET);
+    const result = await verifyToken(signed, SECRET);
+    expect(result).toBe(raw);
+  });
+
+  it('verifyToken returns null for a tampered token', async () => {
+    const signed = await signToken('rawtoken', SECRET);
+    const tampered = signed.slice(0, -4) + 'aaaa';
+    const result = await verifyToken(tampered, SECRET);
+    expect(result).toBeNull();
+  });
+
+  it('verifyToken returns null for wrong secret', async () => {
+    const signed = await signToken('rawtoken', SECRET);
+    const result = await verifyToken(signed, 'wrong-secret');
+    expect(result).toBeNull();
+  });
+
+  it('verifyToken returns null for token without dot', async () => {
+    const result = await verifyToken('nodothere', SECRET);
+    expect(result).toBeNull();
+  });
+});
+
+describe('ID generation', () => {
   it('generateSessionId produces 32-char hex string', () => {
     const id = generateSessionId();
     expect(id).toMatch(/^[0-9a-f]{32}$/);
@@ -56,7 +121,9 @@ describe('Crypto utilities', () => {
     const id = generateUserId();
     expect(id).toMatch(/^[0-9a-f]{16}$/);
   });
+});
 
+describe('Cookie parsing', () => {
   it('parseCookies parses cookie header', () => {
     const cookies = parseCookies('kinsen_session=abc123; other=xyz');
     expect(cookies.kinsen_session).toBe('abc123');

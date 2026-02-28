@@ -9,3 +9,12 @@ binding = "AI"
 binding = "KV"
 id = "bd331e128b6a455a961b5a9aa939a8c7"
 preview_id = "8fb3afe1db404547b47c9511ce935508"
+
+# Non-secret runtime configuration (safe to commit)
+[vars]
+AUTH_MODE = "admin_only"
+AI_PROVIDER = "workers_ai"
+DEFAULT_ROOM_ID = "global"
+ALLOW_OWNER_LOCK = "false"
+RATE_LIMIT_WINDOW_SEC = "900"
+RATE_LIMIT_MAX_ATTEMPTS = "5"

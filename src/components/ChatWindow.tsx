@@ -1,34 +1,58 @@
-import { useState, useRef, useEffect, FormEvent, useCallback } from 'react';
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  FormEvent,
+  KeyboardEvent,
+} from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
+interface UserInfo {
+  id: string;
+  name: string;
+  role: string;
 }
 
-interface SessionMeta {
+interface Thread {
   id: string;
   title: string;
+  userId: string;
+  roomId: string;
   locked: boolean;
-  messageCount: number;
   createdAt: string;
   updatedAt: string;
+  messageCount: number;
 }
 
-interface Shortcut {
+interface Message {
   id: string;
-  label: string;
-  prompt: string;
+  threadId: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  userId?: string;
+  createdAt: string;
+}
+
+interface Macro {
+  id: string;
+  title: string;
+  promptTemplate: string;
   global: boolean;
 }
 
 interface ChatWindowProps {
-  user: { id: string; name: string; role: string } | null;
+  user: UserInfo | null;
   token: string;
   darkMode: boolean;
   onToggleDark: () => void;
   onLogout: () => void;
   onOpenAdmin?: () => void;
+}
+
+function localId(): string {
+  return Math.random().toString(36).slice(2, 10);
 }
 
 export function ChatWindow({
@@ -39,20 +63,28 @@ export function ChatWindow({
   onLogout,
   onOpenAdmin,
 }: ChatWindowProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [currentThread, setCurrentThread] = useState<Thread | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [streamContent, setStreamContent] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [sessions, setSessions] = useState<SessionMeta[]>([]);
-  const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
-  const [isLocked, setIsLocked] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [macros, setMacros] = useState<Macro[]>([]);
+  const [showMacros, setShowMacros] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [threadSearch, setThreadSearch] = useState('');
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [pinOld, setPinOld] = useState('');
+  const [pinNew, setPinNew] = useState('');
+  const [pinMsg, setPinMsg] = useState('');
+  const [copied, setCopied] = useState<string | null>(null);
 
-  // Helper: build headers with Bearer token
-  const authHeaders = useCallback(
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const auth = useCallback(
     (extra?: Record<string, string>): Record<string, string> => ({
       Authorization: `Bearer ${token}`,
       ...extra,
@@ -60,425 +92,538 @@ export function ChatWindow({
     [token],
   );
 
-  const jsonAuthHeaders = useCallback(
-    () => authHeaders({ 'Content-Type': 'application/json' }),
-    [authHeaders],
-  );
-
-  // Load sessions and shortcuts on mount
   useEffect(() => {
-    loadSessions();
-    loadShortcuts();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    loadThreads();
+    loadMacros();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Auto-scroll to bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (currentThread) loadMessages(currentThread.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentThread?.id]);
 
-  const loadSessions = async () => {
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, streamContent]);
+
+  const loadThreads = async () => {
     try {
-      const res = await fetch('/api/chat/sessions', { headers: authHeaders() });
+      const res = await fetch('/api/threads', { headers: auth() });
       if (res.ok) {
-        const data = (await res.json()) as SessionMeta[];
-        setSessions(data);
+        const data = (await res.json()) as Thread[];
+        setThreads(data);
+        if (!currentThread && data.length) setCurrentThread(data[0]);
       }
     } catch {
       /* ignore */
     }
   };
 
-  const loadShortcuts = async () => {
+  const loadMessages = async (threadId: string) => {
     try {
-      const res = await fetch('/api/shortcuts', { headers: authHeaders() });
-      if (res.ok) {
-        const data = (await res.json()) as Shortcut[];
-        setShortcuts(data);
-      }
+      const res = await fetch(`/api/threads/${threadId}/messages`, { headers: auth() });
+      if (res.ok) setMessages((await res.json()) as Message[]);
     } catch {
       /* ignore */
     }
   };
 
-  const loadSession = async (sid: string) => {
+  const loadMacros = async () => {
     try {
-      const res = await fetch(`/api/chat/history?sessionId=${sid}`, {
-        headers: authHeaders(),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { messages?: ChatMessage[]; locked?: boolean };
-        setSessionId(sid);
-        setMessages(data.messages || []);
-        setIsLocked(data.locked || false);
-      }
+      const res = await fetch('/api/macros', { headers: auth() });
+      if (res.ok) setMacros((await res.json()) as Macro[]);
     } catch {
       /* ignore */
     }
   };
 
-  const startNewSession = () => {
-    setSessionId(null);
-    setMessages([]);
-    setIsLocked(false);
+  const newThread = async () => {
+    const res = await fetch('/api/threads', {
+      method: 'POST',
+      headers: auth({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ title: 'New Thread' }),
+    });
+    if (res.ok) {
+      const t = (await res.json()) as Thread;
+      setThreads((prev) => [t, ...prev]);
+      setCurrentThread(t);
+      setMessages([]);
+    }
   };
 
-  const sendMessage = async (messageText?: string) => {
-    const text = (messageText || input).trim();
-    if (!text || loading || isLocked) return;
+  const deleteThread = async (threadId: string) => {
+    if (!confirm('Delete this thread and all its messages?')) return;
+    await fetch(`/api/threads/${threadId}`, { method: 'DELETE', headers: auth() });
+    const remaining = threads.filter((t) => t.id !== threadId);
+    setThreads(remaining);
+    if (currentThread?.id === threadId) {
+      setCurrentThread(remaining[0] ?? null);
+      setMessages([]);
+    }
+  };
 
-    const userMsg: ChatMessage = {
+  const renameThread = async (threadId: string) => {
+    if (!renameValue.trim()) { setRenaming(null); return; }
+    const res = await fetch(`/api/threads/${threadId}`, {
+      method: 'PUT',
+      headers: auth({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ title: renameValue.trim() }),
+    });
+    if (res.ok) {
+      const updated = (await res.json()) as Thread;
+      setThreads((prev) => prev.map((t) => (t.id === threadId ? updated : t)));
+      if (currentThread?.id === threadId) setCurrentThread(updated);
+    }
+    setRenaming(null);
+  };
+
+  const toggleLock = async (thread: Thread) => {
+    const url = thread.locked
+      ? `/api/threads/${thread.id}/unlock`
+      : `/api/threads/${thread.id}/lock`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: auth({ 'Content-Type': 'application/json' }),
+    });
+    if (res.ok) {
+      const { thread: updated } = (await res.json()) as { thread: Thread };
+      setThreads((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      if (currentThread?.id === updated.id) setCurrentThread(updated);
+    }
+  };
+
+  const sendMessage = async (content: string) => {
+    if (!content.trim() || !currentThread || isStreaming) return;
+
+    const userMsg: Message = {
+      id: localId(),
+      threadId: currentThread.id,
       role: 'user',
-      content: text,
-      timestamp: new Date().toISOString(),
+      content: content.trim(),
+      userId: user?.id,
+      createdAt: new Date().toISOString(),
     };
+
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
-    setLoading(true);
+    setIsStreaming(true);
+    setStreamContent('');
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch(`/api/threads/${currentThread.id}/messages`, {
         method: 'POST',
-        headers: jsonAuthHeaders(),
-        body: JSON.stringify({ message: text, sessionId, token }),
+        headers: auth({ 'Content-Type': 'application/json', Accept: 'text/event-stream' }),
+        body: JSON.stringify({ content: content.trim() }),
+        signal: controller.signal,
       });
 
-      const data = (await res.json()) as { reply?: string; sessionId?: string; error?: string };
-
-      if (res.ok) {
-        if (!sessionId && data.sessionId) setSessionId(data.sessionId);
-        const assistantMsg: ChatMessage = {
-          role: 'assistant',
-          content: data.reply || '',
-          timestamp: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, assistantMsg]);
-        loadSessions();
-      } else {
-        const errorMsg: ChatMessage = {
-          role: 'assistant',
-          content: `Error: ${data.error || 'Failed to get response'}`,
-          timestamp: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, errorMsg]);
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: localId(),
+            threadId: currentThread.id,
+            role: 'assistant',
+            content: `⚠ ${err.error ?? 'Error from server'}`,
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+        return;
       }
-    } catch {
-      const errorMsg: ChatMessage = {
-        role: 'assistant',
-        content: 'Network error. Please try again.',
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
+
+      // SSE streaming
+      if (res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        let accumulated = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() ?? '';
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6).trim();
+            if (data === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(data) as { response?: string };
+              accumulated += parsed.response ?? '';
+              setStreamContent(accumulated);
+            } catch {
+              /* skip malformed chunk */
+            }
+          }
+        }
+
+        if (accumulated) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: localId(),
+              threadId: currentThread.id,
+              role: 'assistant',
+              content: accumulated,
+              createdAt: new Date().toISOString(),
+            },
+          ]);
+        }
+      } else {
+        // Non-streaming fallback (shouldn't happen but handle gracefully)
+        const data = (await res.json()) as { reply?: string };
+        if (data.reply) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: localId(),
+              threadId: currentThread.id,
+              role: 'assistant',
+              content: data.reply!,
+              createdAt: new Date().toISOString(),
+            },
+          ]);
+        }
+      }
+    } catch (e: unknown) {
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: localId(),
+          threadId: currentThread.id,
+          role: 'assistant',
+          content: '⚠ Connection error. Please try again.',
+          createdAt: new Date().toISOString(),
+        },
+      ]);
     } finally {
-      setLoading(false);
+      setIsStreaming(false);
+      setStreamContent('');
+      abortRef.current = null;
+      loadThreads();
     }
   };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    sendMessage();
+    sendMessage(input);
   };
 
-  const handleLock = async () => {
-    if (!sessionId) return;
-    const endpoint = isLocked ? '/api/chat/unlock' : '/api/chat/lock';
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(input);
+    }
+  };
+
+  const copyMessage = async (content: string, id: string) => {
     try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: jsonAuthHeaders(),
-        body: JSON.stringify({ sessionId }),
-      });
-      if (res.ok) {
-        setIsLocked(!isLocked);
-        loadSessions();
-      }
+      await navigator.clipboard.writeText(content);
+      setCopied(id);
+      setTimeout(() => setCopied(null), 1500);
     } catch {
       /* ignore */
     }
   };
 
-  const handleSave = async () => {
-    if (!sessionId) return;
-    try {
-      const res = await fetch('/api/chat/save', {
-        method: 'POST',
-        headers: jsonAuthHeaders(),
-        body: JSON.stringify({ sessionId }),
-      });
-      if (res.ok) {
-        alert('Session archived successfully');
-      }
-    } catch {
-      /* ignore */
+  const handlePinChange = async (e: FormEvent) => {
+    e.preventDefault();
+    setPinMsg('');
+    if (!/^\d{4}$/.test(pinOld) || !/^\d{4}$/.test(pinNew)) {
+      setPinMsg('Both PINs must be exactly 4 digits.');
+      return;
     }
+    const res = await fetch('/api/user/pin', {
+      method: 'PUT',
+      headers: auth({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ oldPin: pinOld, newPin: pinNew }),
+    });
+    const data = (await res.json()) as { ok?: boolean; error?: string };
+    setPinMsg(data.ok ? '✓ PIN changed successfully.' : data.error ?? 'Failed.');
+    if (data.ok) { setPinOld(''); setPinNew(''); }
   };
 
-  const canLock = user?.role === 'admin' || user?.role === 'coordinator';
+  const canLock = user?.role === 'coordinator' || user?.role === 'admin';
+  const filteredThreads = threads.filter((t) =>
+    t.title.toLowerCase().includes(threadSearch.toLowerCase()),
+  );
 
   return (
     <div className={`chat-layout ${darkMode ? 'dark' : ''}`}>
-      {/* Sidebar */}
-      {showSidebar && (
-        <aside className="chat-sidebar">
-          <div className="sidebar-header">
-            <h2>Kinsen Station AI</h2>
-            <button className="btn-new-chat" onClick={startNewSession}>
-              + New Chat
+      {/* ── Sidebar ─────────────────────────────────────────── */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <span className="sidebar-brand">⚡ Kinsen</span>
+          <div className="sidebar-header-actions">
+            <button className="btn-icon" title="Toggle theme" onClick={onToggleDark}>
+              {darkMode ? '☀' : '🌙'}
+            </button>
+            {onOpenAdmin && (
+              <button className="btn-icon" title="Admin Panel" onClick={onOpenAdmin}>
+                ⚙
+              </button>
+            )}
+            <button
+              className={`btn-icon ${showProfile ? 'active' : ''}`}
+              title="Profile"
+              onClick={() => setShowProfile((v) => !v)}
+            >
+              👤
+            </button>
+            <button className="btn-icon btn-danger-hover" title="Logout" onClick={onLogout}>
+              ⏏
             </button>
           </div>
+        </div>
 
-          <div className="session-list">
-            {sessions.map((s) => (
-              <button
-                key={s.id}
-                className={`session-item ${s.id === sessionId ? 'active' : ''} ${s.locked ? 'locked' : ''}`}
-                onClick={() => loadSession(s.id)}
-              >
-                <span className="session-title">{s.title}</span>
-                {s.locked && <span className="lock-badge">Locked</span>}
-                <span className="session-count">{s.messageCount} msgs</span>
-              </button>
-            ))}
-            {sessions.length === 0 && <p className="no-sessions">No conversations yet</p>}
-          </div>
+        <button className="btn-new-thread" onClick={newThread}>
+          + New Thread
+        </button>
 
-          <div className="sidebar-footer">
-            <div className="user-info">
-              <span className="user-name">{user?.name}</span>
-              <span className="user-role">{user?.role}</span>
-            </div>
-            <div className="sidebar-actions">
-              {onOpenAdmin && (
-                <button className="btn-small" onClick={onOpenAdmin}>
-                  Admin
+        <input
+          className="search-input"
+          placeholder="Search threads…"
+          value={threadSearch}
+          onChange={(e) => setThreadSearch(e.target.value)}
+        />
+
+        <ul className="thread-list">
+          {filteredThreads.map((t) => (
+            <li key={t.id} className={`thread-item ${currentThread?.id === t.id ? 'active' : ''}`}>
+              {renaming === t.id ? (
+                <input
+                  className="rename-input"
+                  value={renameValue}
+                  autoFocus
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onBlur={() => renameThread(t.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') renameThread(t.id);
+                    if (e.key === 'Escape') setRenaming(null);
+                  }}
+                />
+              ) : (
+                <button className="thread-title-btn" onClick={() => setCurrentThread(t)}>
+                  {t.locked && <span className="lock-icon" title="Locked">🔒</span>}
+                  <span className="thread-name">{t.title}</span>
+                  <span className="thread-count">{t.messageCount}</span>
                 </button>
               )}
-              <button className="btn-small" onClick={() => setShowProfile(!showProfile)}>
-                Profile
-              </button>
-              <button className="btn-small" onClick={onToggleDark}>
-                {darkMode ? 'Light' : 'Dark'}
-              </button>
-              <button className="btn-small btn-logout" onClick={onLogout}>
-                Logout
-              </button>
-            </div>
-          </div>
-        </aside>
-      )}
-
-      {/* Main chat area */}
-      <main className="chat-main">
-        <div className="chat-header">
-          <button className="btn-toggle-sidebar" onClick={() => setShowSidebar(!showSidebar)}>
-            {showSidebar ? '\u2190' : '\u2192'}
-          </button>
-          <h3>
-            {sessionId
-              ? sessions.find((s) => s.id === sessionId)?.title || 'Chat'
-              : 'New Conversation'}
-          </h3>
-          <div className="chat-header-actions">
-            {isLocked && <span className="lock-indicator">Locked</span>}
-            {canLock && sessionId && (
-              <button className="btn-small" onClick={handleLock}>
-                {isLocked ? 'Unlock' : 'Lock'}
-              </button>
-            )}
-            {sessionId && (
-              <>
-                <button className="btn-small" onClick={handleSave}>
-                  Save
+              <div className="thread-row-actions">
+                {canLock && (
+                  <button
+                    className="btn-icon-sm"
+                    title={t.locked ? 'Unlock' : 'Lock'}
+                    onClick={(e) => { e.stopPropagation(); toggleLock(t); }}
+                  >
+                    {t.locked ? '🔓' : '🔒'}
+                  </button>
+                )}
+                <button
+                  className="btn-icon-sm"
+                  title="Rename"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setRenaming(t.id);
+                    setRenameValue(t.title);
+                  }}
+                >
+                  ✎
                 </button>
-                <button className="btn-small" onClick={() => setShowHistory(!showHistory)}>
-                  History
+                <button
+                  className="btn-icon-sm btn-danger-hover"
+                  title="Delete"
+                  onClick={(e) => { e.stopPropagation(); deleteThread(t.id); }}
+                >
+                  ✕
                 </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Shortcuts bar */}
-        {shortcuts.length > 0 && (
-          <div className="shortcuts-bar">
-            {shortcuts.map((sc) => (
-              <button
-                key={sc.id}
-                className="shortcut-btn"
-                onClick={() => sendMessage(sc.prompt)}
-                disabled={loading || isLocked}
-                title={sc.prompt}
-              >
-                {sc.label}
-                {sc.global && <span className="shortcut-global">G</span>}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Messages */}
-        <div className="chat-messages">
-          {messages.length === 0 && (
-            <div className="chat-empty">
-              <h2>Welcome to Kinsen Station AI</h2>
-              <p>Start a conversation or select a session from the sidebar.</p>
-              <p>Use the shortcut buttons above for quick prompts.</p>
-            </div>
-          )}
-          {messages.map((msg, i) => (
-            <div key={i} className={`message ${msg.role}`}>
-              <div className="message-avatar">
-                {msg.role === 'user' ? user?.name?.charAt(0) || 'U' : 'AI'}
               </div>
-              <div className="message-content">
-                <div className="message-text">{msg.content}</div>
-                <div className="message-time">{new Date(msg.timestamp).toLocaleTimeString()}</div>
-              </div>
-            </div>
+            </li>
           ))}
-          {loading && (
-            <div className="message assistant">
-              <div className="message-avatar">AI</div>
-              <div className="message-content">
-                <div className="message-text typing">Thinking...</div>
-              </div>
-            </div>
+          {!filteredThreads.length && (
+            <li className="thread-empty">No threads yet.</li>
           )}
-          <div ref={messagesEndRef} />
-        </div>
+        </ul>
 
-        {/* Input */}
-        <form className="chat-input-form" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            className="chat-input"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={isLocked ? 'This session is locked' : 'Type your message...'}
-            disabled={loading || isLocked}
-            maxLength={2000}
-          />
-          <button
-            type="submit"
-            className="btn-send"
-            disabled={loading || isLocked || !input.trim()}
-          >
-            {loading ? '...' : 'Send'}
+        {/* Quick Actions */}
+        <div className="macros-section">
+          <button className="macros-toggle" onClick={() => setShowMacros((v) => !v)}>
+            ⚡ Quick Actions {showMacros ? '▲' : '▼'}
           </button>
-        </form>
-      </main>
-
-      {/* Profile panel */}
-      {showProfile && (
-        <ProfilePanel user={user} token={token} onClose={() => setShowProfile(false)} />
-      )}
-
-      {/* History panel */}
-      {showHistory && sessionId && (
-        <HistoryPanel
-          sessionId={sessionId}
-          messages={messages}
-          onClose={() => setShowHistory(false)}
-        />
-      )}
-    </div>
-  );
-}
-
-// Profile panel component
-function ProfilePanel({
-  user,
-  token,
-  onClose,
-}: {
-  user: { id: string; name: string; role: string } | null;
-  token: string;
-  onClose: () => void;
-}) {
-  const [name, setName] = useState(user?.name || '');
-  const [avatar, setAvatar] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await fetch('/api/user/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name, avatar: avatar || undefined }),
-      });
-    } catch {
-      /* ignore */
-    }
-    setSaving(false);
-  };
-
-  return (
-    <aside className="panel-overlay">
-      <div className="panel">
-        <div className="panel-header">
-          <h3>Profile</h3>
-          <button onClick={onClose}>&times;</button>
+          {showMacros && (
+            <ul className="macros-list">
+              {macros.map((m) => (
+                <li key={m.id}>
+                  <button className="macro-btn" onClick={() => {
+                    setInput(m.promptTemplate);
+                    setShowMacros(false);
+                    textareaRef.current?.focus();
+                  }}>
+                    {m.global && <span className="macro-global-dot" title="Global">●</span>}
+                    {m.title}
+                  </button>
+                </li>
+              ))}
+              {!macros.length && <li className="macro-empty">No quick actions yet.</li>}
+            </ul>
+          )}
         </div>
-        <div className="panel-body">
-          <div className="form-group">
-            <label>Name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label>Avatar URL</label>
-            <input
-              value={avatar}
-              onChange={(e) => setAvatar(e.target.value)}
-              placeholder="https://..."
-            />
-          </div>
-          <div className="form-group">
-            <label>Role</label>
-            <input value={user?.role || ''} disabled />
-          </div>
-          <button onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Profile'}
-          </button>
-        </div>
-      </div>
-    </aside>
-  );
-}
+      </aside>
 
-// History panel component
-function HistoryPanel({
-  sessionId,
-  messages,
-  onClose,
-}: {
-  sessionId: string;
-  messages: ChatMessage[];
-  onClose: () => void;
-}) {
-  return (
-    <aside className="panel-overlay">
-      <div className="panel panel-wide">
-        <div className="panel-header">
-          <h3>Session History</h3>
-          <button onClick={onClose}>&times;</button>
-        </div>
-        <div className="panel-body">
-          <p className="session-id">Session: {sessionId}</p>
-          <p className="message-count">{messages.length} messages</p>
-          <div className="history-messages">
-            {messages.map((msg, i) => (
-              <div key={i} className={`history-msg ${msg.role}`}>
-                <strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong>
-                <span>{msg.content}</span>
-                <small>{new Date(msg.timestamp).toLocaleString()}</small>
+      {/* ── Main area ────────────────────────────────────────── */}
+      <main className="chat-main">
+        {showProfile ? (
+          <div className="profile-panel">
+            <div className="profile-header">
+              <h2>Profile</h2>
+              <span className={`role-badge role-${user?.role}`}>{user?.role}</span>
+              <button className="btn-small" onClick={() => setShowProfile(false)}>✕ Close</button>
+            </div>
+            <p className="profile-name">{user?.name}</p>
+
+            <form className="pin-change-form" onSubmit={handlePinChange}>
+              <h3>Change PIN</h3>
+              <div className="form-row">
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="Current PIN"
+                  value={pinOld}
+                  onChange={(e) => setPinOld(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                />
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="New PIN"
+                  value={pinNew}
+                  onChange={(e) => setPinNew(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                />
+                <button type="submit" className="btn-primary">Update</button>
               </div>
-            ))}
+              {pinMsg && (
+                <p className={pinMsg.startsWith('✓') ? 'success-text' : 'error-text'}>{pinMsg}</p>
+              )}
+            </form>
           </div>
-        </div>
-      </div>
-    </aside>
+        ) : !currentThread ? (
+          <div className="chat-empty">
+            <div className="chat-empty-content">
+              <h1>⚡ Kinsen Station AI</h1>
+              <p>Start a new thread to chat with your AI assistant.</p>
+              <button className="btn-primary" onClick={newThread}>+ New Thread</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="chat-header">
+              <div>
+                {currentThread.locked && <span className="lock-badge">🔒 Locked</span>}
+                <h2 className="chat-header-title">{currentThread.title}</h2>
+              </div>
+              <span className="text-muted">{messages.length} messages</span>
+            </div>
+
+            <div className="messages-container">
+              {messages.map((msg) => (
+                <div key={msg.id} className={`message message-${msg.role}`}>
+                  <div className="message-meta">
+                    <span className="message-author">
+                      {msg.role === 'user' ? (user?.name ?? 'You') : '🤖 Kinsen'}
+                    </span>
+                    <span className="message-time">
+                      {new Date(msg.createdAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                    <button
+                      className="btn-icon-sm"
+                      title="Copy message"
+                      onClick={() => copyMessage(msg.content, msg.id)}
+                    >
+                      {copied === msg.id ? '✓' : '⎘'}
+                    </button>
+                  </div>
+                  <div className="message-body">
+                    {msg.role === 'assistant' ? (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                    ) : (
+                      <p>{msg.content}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {isStreaming && (
+                <div className="message message-assistant streaming">
+                  <div className="message-meta">
+                    <span className="message-author">🤖 Kinsen</span>
+                    <span className="streaming-dot">●</span>
+                  </div>
+                  <div className="message-body">
+                    {streamContent ? (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamContent}</ReactMarkdown>
+                    ) : (
+                      <span className="typing-dots">
+                        <span /><span /><span />
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div ref={bottomRef} />
+            </div>
+
+            <form className="composer" onSubmit={handleSubmit}>
+              {currentThread.locked && !canLock ? (
+                <div className="locked-notice">🔒 This thread is locked. Only coordinators and admins can reply.</div>
+              ) : (
+                <>
+                  <textarea
+                    ref={textareaRef}
+                    className="composer-textarea"
+                    placeholder={`Message ${currentThread.title}… (Enter to send, Shift+Enter for newline)`}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    disabled={isStreaming}
+                    rows={2}
+                  />
+                  <div className="composer-footer">
+                    {isStreaming ? (
+                      <button
+                        type="button"
+                        className="btn-stop"
+                        onClick={() => abortRef.current?.abort()}
+                      >
+                        ⏹ Stop
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        className="btn-send"
+                        disabled={!input.trim() || isStreaming}
+                      >
+                        Send ↑
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </form>
+          </>
+        )}
+      </main>
+    </div>
   );
 }

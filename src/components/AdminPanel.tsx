@@ -19,6 +19,17 @@ interface SessionInfo {
   updatedAt: string;
 }
 
+interface AuditEntry {
+  id: string;
+  ts: string;
+  actorId: string;
+  actorName?: string;
+  action: string;
+  targetId?: string;
+  targetType?: string;
+  ip: string;
+}
+
 interface AdminPanelProps {
   user: { id: string; name: string; role: string };
   token: string;
@@ -27,232 +38,250 @@ interface AdminPanelProps {
   onBack: () => void;
 }
 
+type Tab = 'users' | 'sessions' | 'shortcuts' | 'audit';
+
 export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: AdminPanelProps) {
-  const [tab, setTab] = useState<'users' | 'sessions' | 'shortcuts'>('users');
+  const [tab, setTab] = useState<Tab>('users');
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
+  const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Create user form
+  // Create user
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState('user');
   const [newPin, setNewPin] = useState('');
   const [createError, setCreateError] = useState('');
   const [createSuccess, setCreateSuccess] = useState('');
 
-  // Shortcut form
+  // Reset PIN
+  const [resetUserId, setResetUserId] = useState('');
+  const [resetPin, setResetPin] = useState('');
+  const [resetMsg, setResetMsg] = useState('');
+
+  // Shortcuts
   const [scLabel, setScLabel] = useState('');
   const [scPrompt, setScPrompt] = useState('');
   const [scGlobal, setScGlobal] = useState(true);
   const [shortcuts, setShortcuts] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (tab === 'users') loadUsers();
-    if (tab === 'sessions') loadSessions();
-    if (tab === 'shortcuts') loadShortcuts();
-  }, [tab]);
-
-  const authHeaders = (extra?: Record<string, string>): Record<string, string> => ({
+  const auth = (extra?: Record<string, string>): Record<string, string> => ({
     Authorization: `Bearer ${token}`,
     ...extra,
   });
 
+  useEffect(() => {
+    if (tab === 'users') loadUsers();
+    else if (tab === 'sessions') loadSessions();
+    else if (tab === 'shortcuts') loadShortcuts();
+    else if (tab === 'audit') loadAudit();
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/users', { headers: authHeaders() });
+      const res = await fetch('/api/admin/users', { headers: auth() });
       if (res.ok) setUsers((await res.json()) as UserInfo[]);
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
     setLoading(false);
   };
 
   const loadSessions = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/sessions', { headers: authHeaders() });
+      const res = await fetch('/api/sessions', { headers: auth() });
       if (res.ok) setSessions((await res.json()) as SessionInfo[]);
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
     setLoading(false);
   };
 
   const loadShortcuts = async () => {
     try {
-      const res = await fetch('/api/shortcuts', { headers: authHeaders() });
+      const res = await fetch('/api/shortcuts', { headers: auth() });
       if (res.ok) setShortcuts((await res.json()) as any[]);
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
+  };
+
+  const loadAudit = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/audit?limit=200', { headers: auth() });
+      if (res.ok) setAuditLog((await res.json()) as AuditEntry[]);
+    } catch { /* ignore */ }
+    setLoading(false);
   };
 
   const handleCreateUser = async (e: FormEvent) => {
     e.preventDefault();
     setCreateError('');
     setCreateSuccess('');
-
     if (!newName.trim() || !/^\d{4}$/.test(newPin)) {
       setCreateError('Name required and PIN must be 4 digits');
       return;
     }
-
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        headers: auth({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ name: newName.trim(), role: newRole, pin: newPin }),
       });
-      const data = (await res.json()) as {
-        ok?: boolean;
-        error?: string;
-        user?: { id: string; name: string };
-      };
+      const data = (await res.json()) as { ok?: boolean; error?: string; user?: { id: string; name: string } };
       if (res.ok && data.user) {
         setCreateSuccess(`User "${data.user.name}" created (ID: ${data.user.id})`);
         setNewName('');
         setNewPin('');
         loadUsers();
       } else {
-        setCreateError(data.error || 'Failed to create user');
+        setCreateError(data.error ?? 'Failed to create user');
       }
     } catch {
       setCreateError('Network error');
     }
   };
 
-  const handleToggleLock = async (sid: string, currentlyLocked: boolean) => {
-    const endpoint = currentlyLocked ? '/api/chat/unlock' : '/api/chat/lock';
-    try {
-      await fetch(endpoint, {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ sessionId: sid }),
-      });
-      loadSessions();
-    } catch {
-      /* ignore */
+  const handleResetPin = async (e: FormEvent) => {
+    e.preventDefault();
+    setResetMsg('');
+    if (!resetUserId.trim() || !/^\d{4}$/.test(resetPin)) {
+      setResetMsg('User ID and 4-digit PIN required.');
+      return;
     }
+    try {
+      const res = await fetch(`/api/admin/users/${resetUserId.trim()}/reset-pin`, {
+        method: 'POST',
+        headers: auth({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ pin: resetPin }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      setResetMsg(data.ok ? '✓ PIN reset successfully.' : data.error ?? 'Failed.');
+      if (data.ok) { setResetUserId(''); setResetPin(''); }
+    } catch {
+      setResetMsg('Network error');
+    }
+  };
+
+  const handleToggleLock = async (sid: string, locked: boolean) => {
+    const endpoint = locked ? '/api/chat/unlock' : '/api/chat/lock';
+    await fetch(endpoint, {
+      method: 'POST',
+      headers: auth({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ sessionId: sid }),
+    });
+    loadSessions();
   };
 
   const handleCreateShortcut = async (e: FormEvent) => {
     e.preventDefault();
     if (!scLabel.trim() || !scPrompt.trim()) return;
-
-    try {
-      await fetch('/api/shortcuts', {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ label: scLabel.trim(), prompt: scPrompt.trim(), global: scGlobal }),
-      });
-      setScLabel('');
-      setScPrompt('');
-      loadShortcuts();
-    } catch {
-      /* ignore */
-    }
+    await fetch('/api/shortcuts', {
+      method: 'POST',
+      headers: auth({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ label: scLabel.trim(), prompt: scPrompt.trim(), global: scGlobal }),
+    });
+    setScLabel('');
+    setScPrompt('');
+    loadShortcuts();
   };
 
   const handleDeleteShortcut = async (id: string) => {
-    try {
-      await fetch(`/api/shortcuts?id=${id}`, {
-        method: 'DELETE',
-        headers: authHeaders(),
-      });
-      loadShortcuts();
-    } catch {
-      /* ignore */
-    }
+    await fetch(`/api/shortcuts?id=${id}`, { method: 'DELETE', headers: auth() });
+    loadShortcuts();
   };
 
   return (
     <div className={`admin-layout ${darkMode ? 'dark' : ''}`}>
       <header className="admin-header">
-        <button className="btn-back" onClick={onBack}>
-          &larr; Back to Chat
-        </button>
+        <button className="btn-back" onClick={onBack}>&larr; Back to Chat</button>
         <h1>Admin Dashboard</h1>
         <div className="admin-header-actions">
           <span>
-            Logged in as {user.name} ({user.role})
+            {user.name} <span className={`role-badge role-${user.role}`}>{user.role}</span>
           </span>
           <button className="btn-small" onClick={onToggleDark}>
-            {darkMode ? 'Light' : 'Dark'}
+            {darkMode ? '☀ Light' : '🌙 Dark'}
           </button>
         </div>
       </header>
 
       <nav className="admin-tabs">
-        <button className={tab === 'users' ? 'active' : ''} onClick={() => setTab('users')}>
-          Users
-        </button>
-        <button className={tab === 'sessions' ? 'active' : ''} onClick={() => setTab('sessions')}>
-          Sessions
-        </button>
-        <button className={tab === 'shortcuts' ? 'active' : ''} onClick={() => setTab('shortcuts')}>
-          Shortcuts
-        </button>
+        {(['users', 'sessions', 'shortcuts', 'audit'] as Tab[]).map((t) => (
+          <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
       </nav>
 
       <main className="admin-content">
-        {/* Users Tab */}
+        {/* ── Users ─────────────────────────────────────────── */}
         {tab === 'users' && (
           <div className="admin-section">
             <h2>User Management</h2>
 
             {user.role === 'admin' && (
-              <form onSubmit={handleCreateUser} className="create-user-form">
-                <h3>Create New User</h3>
-                <div className="form-row">
-                  <input
-                    placeholder="Name"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                  />
-                  <select value={newRole} onChange={(e) => setNewRole(e.target.value)}>
-                    <option value="user">User</option>
-                    <option value="coordinator">Coordinator</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                  <input
-                    placeholder="4-digit PIN"
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    value={newPin}
-                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  />
-                  <button type="submit">Create</button>
-                </div>
-                {createError && <p className="error-text">{createError}</p>}
-                {createSuccess && <p className="success-text">{createSuccess}</p>}
-              </form>
+              <>
+                <form onSubmit={handleCreateUser} className="create-user-form">
+                  <h3>Create User</h3>
+                  <div className="form-row">
+                    <input placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)} />
+                    <select value={newRole} onChange={(e) => setNewRole(e.target.value)}>
+                      <option value="user">User</option>
+                      <option value="coordinator">Coordinator</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    <input
+                      placeholder="4-digit PIN"
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={4}
+                      value={newPin}
+                      onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    />
+                    <button type="submit">Create</button>
+                  </div>
+                  {createError && <p className="error-text">{createError}</p>}
+                  {createSuccess && <p className="success-text">{createSuccess}</p>}
+                </form>
+
+                <form onSubmit={handleResetPin} className="create-user-form">
+                  <h3>Reset User PIN</h3>
+                  <div className="form-row">
+                    <input
+                      placeholder="User ID"
+                      value={resetUserId}
+                      onChange={(e) => setResetUserId(e.target.value.trim())}
+                    />
+                    <input
+                      placeholder="New 4-digit PIN"
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={4}
+                      value={resetPin}
+                      onChange={(e) => setResetPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    />
+                    <button type="submit">Reset PIN</button>
+                  </div>
+                  {resetMsg && (
+                    <p className={resetMsg.startsWith('✓') ? 'success-text' : 'error-text'}>{resetMsg}</p>
+                  )}
+                </form>
+              </>
             )}
 
-            {loading ? (
-              <p>Loading users...</p>
-            ) : (
+            {loading ? <p>Loading…</p> : (
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Role</th>
-                    <th>Active</th>
-                    <th>Created</th>
-                    <th>Last Login</th>
+                    <th>ID</th><th>Name</th><th>Role</th><th>Active</th>
+                    <th>Created</th><th>Last Login</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((u) => (
                     <tr key={u.id}>
-                      <td className="mono">{u.id}</td>
+                      <td className="mono" title={u.id}>{u.id.slice(0, 8)}</td>
                       <td>{u.name}</td>
-                      <td>
-                        <span className={`role-badge role-${u.role}`}>{u.role}</span>
-                      </td>
-                      <td>{u.active ? 'Yes' : 'No'}</td>
+                      <td><span className={`role-badge role-${u.role}`}>{u.role}</span></td>
+                      <td>{u.active ? '✓' : '✗'}</td>
                       <td>{new Date(u.createdAt).toLocaleDateString()}</td>
                       <td>{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : 'Never'}</td>
                     </tr>
@@ -263,45 +292,33 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
           </div>
         )}
 
-        {/* Sessions Tab */}
+        {/* ── Sessions ──────────────────────────────────────── */}
         {tab === 'sessions' && (
           <div className="admin-section">
             <h2>Session Moderation</h2>
-            {loading ? (
-              <p>Loading sessions...</p>
-            ) : (
+            {loading ? <p>Loading…</p> : (
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Session ID</th>
-                    <th>Title</th>
-                    <th>User</th>
-                    <th>Messages</th>
-                    <th>Status</th>
-                    <th>Updated</th>
-                    <th>Actions</th>
+                    <th>ID</th><th>Title</th><th>User</th>
+                    <th>Messages</th><th>Status</th><th>Updated</th><th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sessions.map((s) => (
                     <tr key={s.id}>
-                      <td className="mono">{s.id.slice(0, 12)}...</td>
+                      <td className="mono">{s.id.slice(0, 10)}…</td>
                       <td>{s.title}</td>
                       <td>{s.userId}</td>
                       <td>{s.messageCount}</td>
                       <td>
-                        {s.locked ? (
-                          <span className="status-locked">Locked</span>
-                        ) : (
-                          <span className="status-active">Active</span>
-                        )}
+                        <span className={s.locked ? 'status-locked' : 'status-active'}>
+                          {s.locked ? '🔒 Locked' : '● Active'}
+                        </span>
                       </td>
                       <td>{new Date(s.updatedAt).toLocaleString()}</td>
                       <td>
-                        <button
-                          className="btn-small"
-                          onClick={() => handleToggleLock(s.id, s.locked)}
-                        >
+                        <button className="btn-small" onClick={() => handleToggleLock(s.id, s.locked)}>
                           {s.locked ? 'Unlock' : 'Lock'}
                         </button>
                       </td>
@@ -313,44 +330,25 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
           </div>
         )}
 
-        {/* Shortcuts Tab */}
+        {/* ── Shortcuts ─────────────────────────────────────── */}
         {tab === 'shortcuts' && (
           <div className="admin-section">
             <h2>Shortcut Management</h2>
-
-            <form onSubmit={handleCreateShortcut} className="create-shortcut-form">
+            <form onSubmit={handleCreateShortcut} className="create-user-form">
               <h3>Create Shortcut</h3>
               <div className="form-row">
-                <input
-                  placeholder="Label (button text)"
-                  value={scLabel}
-                  onChange={(e) => setScLabel(e.target.value)}
-                />
-                <input
-                  placeholder="Prompt text"
-                  value={scPrompt}
-                  onChange={(e) => setScPrompt(e.target.value)}
-                />
+                <input placeholder="Label" value={scLabel} onChange={(e) => setScLabel(e.target.value)} />
+                <input placeholder="Prompt text" value={scPrompt} onChange={(e) => setScPrompt(e.target.value)} />
                 <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={scGlobal}
-                    onChange={(e) => setScGlobal(e.target.checked)}
-                  />
+                  <input type="checkbox" checked={scGlobal} onChange={(e) => setScGlobal(e.target.checked)} />
                   Global
                 </label>
                 <button type="submit">Create</button>
               </div>
             </form>
-
             <table className="admin-table">
               <thead>
-                <tr>
-                  <th>Label</th>
-                  <th>Prompt</th>
-                  <th>Scope</th>
-                  <th>Actions</th>
-                </tr>
+                <tr><th>Label</th><th>Prompt</th><th>Scope</th><th>Actions</th></tr>
               </thead>
               <tbody>
                 {shortcuts.map((sc: any) => (
@@ -359,10 +357,7 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
                     <td>{sc.prompt}</td>
                     <td>{sc.global ? 'Global' : 'Personal'}</td>
                     <td>
-                      <button
-                        className="btn-small btn-danger"
-                        onClick={() => handleDeleteShortcut(sc.id)}
-                      >
+                      <button className="btn-small btn-danger" onClick={() => handleDeleteShortcut(sc.id)}>
                         Delete
                       </button>
                     </td>
@@ -370,6 +365,40 @@ export function AdminPanel({ user, token, darkMode, onToggleDark, onBack }: Admi
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* ── Audit Log ─────────────────────────────────────── */}
+        {tab === 'audit' && (
+          <div className="admin-section">
+            <h2>Audit Log</h2>
+            <button className="btn-small" onClick={loadAudit} style={{ marginBottom: '1rem' }}>
+              ↺ Refresh
+            </button>
+            {loading ? <p>Loading…</p> : (
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Time</th><th>Actor</th><th>Action</th>
+                    <th>Target</th><th>IP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLog.map((e) => (
+                    <tr key={`${e.ts}:${e.id}`}>
+                      <td className="mono">{new Date(e.ts).toLocaleString()}</td>
+                      <td>{e.actorName ?? e.actorId}</td>
+                      <td><code>{e.action}</code></td>
+                      <td className="mono">{e.targetId ?? '—'}</td>
+                      <td className="mono">{e.ip}</td>
+                    </tr>
+                  ))}
+                  {!auditLog.length && (
+                    <tr><td colSpan={5} style={{ textAlign: 'center' }}>No audit entries found.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
       </main>

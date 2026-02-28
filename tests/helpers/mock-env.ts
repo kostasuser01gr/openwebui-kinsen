@@ -64,6 +64,7 @@ export function createMockEnv(overrides?: Partial<Env>): Env {
     KV: new InMemoryKV() as unknown as KVNamespace,
     AI: new MockAI() as unknown as Ai,
     PIN_SALT_SECRET: 'test-salt-secret',
+    SESSION_SIGNING_SECRET: 'test-signing-secret',
     ADMIN_TOKEN: 'test-admin-token',
     ...overrides,
   };

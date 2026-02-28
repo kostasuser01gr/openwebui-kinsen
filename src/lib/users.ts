@@ -1,7 +1,7 @@
 import type { User, UserRole, UserSession, Env } from './types';
 import { hashPin, generateSessionId, generateUserId } from './crypto';
 
-// Permissions matrix: which roles can access which features
+// Permission matrix
 const PERMISSIONS: Record<string, UserRole[]> = {
   chat: ['user', 'coordinator', 'admin'],
   shortcuts: ['user', 'coordinator', 'admin'],
@@ -20,9 +20,8 @@ const PERMISSIONS: Record<string, UserRole[]> = {
 };
 
 export function hasPermission(role: UserRole, permission: string): boolean {
-  const allowedRoles = PERMISSIONS[permission];
-  if (!allowedRoles) return false;
-  return allowedRoles.includes(role);
+  const allowed = PERMISSIONS[permission];
+  return !!allowed && allowed.includes(role);
 }
 
 export function isValidPin(pin: string): boolean {
@@ -36,7 +35,7 @@ export async function createUser(
   pin: string,
 ): Promise<User> {
   const id = generateUserId();
-  const pinHash = await hashPin(pin, env.PIN_SALT_SECRET);
+  const pinHash = await hashPin(pin, env.PIN_SALT_SECRET, id);
 
   const user: User = {
     id,
@@ -49,8 +48,7 @@ export async function createUser(
   await env.KV.put(`user:${id}`, JSON.stringify(user));
   await env.KV.put(`auth:${id}`, pinHash);
 
-  // Update user index
-  const index = ((await env.KV.get('user:index', 'json')) as string[] | null) || [];
+  const index = ((await env.KV.get('user:index', 'json')) as string[] | null) ?? [];
   if (!index.includes(id)) {
     index.push(id);
     await env.KV.put('user:index', JSON.stringify(index));
@@ -64,10 +62,36 @@ export async function getUserById(env: Env, id: string): Promise<User | null> {
 }
 
 export async function getAllUsers(env: Env): Promise<User[]> {
-  const index = ((await env.KV.get('user:index', 'json')) as string[] | null) || [];
-  if (index.length === 0) return [];
+  const index = ((await env.KV.get('user:index', 'json')) as string[] | null) ?? [];
+  if (!index.length) return [];
   const users = await Promise.all(index.map((id) => getUserById(env, id)));
   return users.filter(Boolean) as User[];
+}
+
+/** Admin-initiated PIN reset — no old PIN required */
+export async function resetPinForUser(
+  env: Env,
+  userId: string,
+  newPin: string,
+): Promise<void> {
+  const pinHash = await hashPin(newPin, env.PIN_SALT_SECRET, userId);
+  await env.KV.put(`auth:${userId}`, pinHash);
+}
+
+/** User-initiated PIN change — must supply correct old PIN */
+export async function changePinWithVerification(
+  env: Env,
+  userId: string,
+  oldPin: string,
+  newPin: string,
+): Promise<boolean> {
+  const storedHash = await env.KV.get(`auth:${userId}`);
+  if (!storedHash) return false;
+  const oldHash = await hashPin(oldPin, env.PIN_SALT_SECRET, userId);
+  if (oldHash !== storedHash) return false;
+  const newHash = await hashPin(newPin, env.PIN_SALT_SECRET, userId);
+  await env.KV.put(`auth:${userId}`, newHash);
+  return true;
 }
 
 export async function loginUser(
@@ -82,15 +106,13 @@ export async function loginUser(
   const storedHash = await env.KV.get(`auth:${userId}`);
   if (!storedHash) return null;
 
-  const pinHash = await hashPin(pin, env.PIN_SALT_SECRET);
+  const pinHash = await hashPin(pin, env.PIN_SALT_SECRET, userId);
   if (pinHash !== storedHash) return null;
 
-  // Update last login
   user.lastLoginAt = new Date().toISOString();
   await env.KV.put(`user:${user.id}`, JSON.stringify(user));
 
-  // Create session
-  const token = generateSessionId();
+  const rawToken = generateSessionId();
   const session: UserSession = {
     userId: user.id,
     name: user.name,
@@ -98,9 +120,9 @@ export async function loginUser(
     createdAt: new Date().toISOString(),
     ip,
   };
+  await env.KV.put(`session:${rawToken}`, JSON.stringify(session), { expirationTtl: 86400 });
 
-  await env.KV.put(`session:${token}`, JSON.stringify(session), { expirationTtl: 86400 });
-  return { session, token };
+  return { session, token: rawToken };
 }
 
 export async function loginUserByName(
@@ -112,7 +134,6 @@ export async function loginUserByName(
   const allUsers = await getAllUsers(env);
   const user = allUsers.find((u) => u.name.toLowerCase() === name.toLowerCase() && u.active);
   if (!user) return null;
-
   const result = await loginUser(env, user.id, pin, ip);
   if (!result) return null;
   return { ...result, user };

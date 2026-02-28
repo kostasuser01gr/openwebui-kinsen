@@ -1,6 +1,5 @@
-// Shared types for Kinsen Station AI
+// Kinsen Station AI — shared types
 
-// ── User Roles ─────────────────────────────────────────────
 export type UserRole = 'user' | 'coordinator' | 'admin';
 
 // ── Users ──────────────────────────────────────────────────
@@ -22,34 +21,48 @@ export interface UserSession {
   ip: string;
 }
 
-// ── Chat ────────────────────────────────────────────────────
-export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-}
-
-export interface ChatSession {
+// ── Threads (renamed from ChatSession) ─────────────────────
+export interface Thread {
   id: string;
   title: string;
-  messages: ChatMessage[];
+  userId: string;
+  roomId: string;
   locked: boolean;
+  lockedBy?: string;
+  lockedAt?: string;
   createdAt: string;
   updatedAt: string;
+  messageCount: number;
+}
+
+export interface Message {
+  id: string;
+  threadId: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  userId?: string;
+  createdAt: string;
+}
+
+// ── Rooms ───────────────────────────────────────────────────
+export interface Room {
+  id: string;
+  name: string;
+  locked: boolean;
+  createdAt: string;
+}
+
+// ── Macros / Quick Actions ──────────────────────────────────
+export interface Macro {
+  id: string;
   userId: string;
+  title: string;
+  promptTemplate: string;
+  global: boolean;
+  createdAt: string;
 }
 
-export interface ChatRequest {
-  message: string;
-  sessionId?: string;
-}
-
-export interface ChatResponse {
-  reply: string;
-  sessionId: string;
-}
-
-// ── Shortcuts ──────────────────────────────────────────────
+// ── Shortcuts (legacy) ─────────────────────────────────────
 export interface Shortcut {
   id: string;
   label: string;
@@ -74,23 +87,32 @@ export interface UserPreferences {
   language: 'en' | 'el';
 }
 
-// ── Notifications ──────────────────────────────────────────
-export type NotificationType = 'system' | 'alert' | 'update';
-
-export interface Notification {
+// ── Audit ───────────────────────────────────────────────────
+export interface AuditEntry {
   id: string;
-  userId: string;
-  type: NotificationType;
-  title: string;
-  body: string;
-  read: boolean;
-  createdAt: string;
+  ts: string;
+  actorId: string;
+  actorName?: string;
+  action: string;
+  targetId?: string;
+  targetType?: string;
+  meta?: Record<string, unknown>;
+  ip: string;
+  ua?: string;
 }
 
-// ── Env ─────────────────────────────────────────────────────
+// ── Environment ────────────────────────────────────────────
 export interface Env {
   KV: KVNamespace;
   AI: Ai;
   PIN_SALT_SECRET: string;
-  ADMIN_TOKEN: string;
+  SESSION_SIGNING_SECRET: string;
+  ADMIN_TOKEN?: string;
+  // Feature flags (Pages vars, not secrets)
+  AUTH_MODE?: string;           // "admin_only" | "open"  (default: admin_only)
+  AI_PROVIDER?: string;         // "workers_ai" | "none"  (default: workers_ai)
+  DEFAULT_ROOM_ID?: string;     // default: "global"
+  ALLOW_OWNER_LOCK?: string;    // "true" | "false"       (default: false)
+  RATE_LIMIT_WINDOW_SEC?: string;    // default: "900"
+  RATE_LIMIT_MAX_ATTEMPTS?: string;  // default: "10"
 }
