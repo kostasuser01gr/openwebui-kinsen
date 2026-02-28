@@ -13,8 +13,13 @@ preview_id = "8fb3afe1db404547b47c9511ce935508"
 # Non-secret runtime configuration (safe to commit)
 [vars]
 AUTH_MODE = "admin_only"
+# SIGNUP_MODE: "open" | "invite_only" | "admin_only"
+# "open"         — anyone can register (default)
+# "invite_only"  — requires INVITE_CODE secret
+# "admin_only"   — admins create accounts only (POST /api/auth/signup returns 403)
+SIGNUP_MODE = "open"
 AI_PROVIDER = "workers_ai"
 DEFAULT_ROOM_ID = "global"
 ALLOW_OWNER_LOCK = "false"
 RATE_LIMIT_WINDOW_SEC = "900"
-RATE_LIMIT_MAX_ATTEMPTS = "5"
+RATE_LIMIT_MAX_ATTEMPTS = "10"

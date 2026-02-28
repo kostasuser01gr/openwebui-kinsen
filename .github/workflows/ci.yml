@@ -21,6 +21,41 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate required config
+        env:
+          # These are required in the deploy job; validate presence here so
+          # CI fails fast with a clear message before spending time on build.
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT_NAME: ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}
+        run: |
+          set -euo pipefail
+          MISSING=()
+
+          # Required for deploy
+          [ -z "${CLOUDFLARE_API_TOKEN:-}" ]          && MISSING+=("CLOUDFLARE_API_TOKEN")
+          [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]         && MISSING+=("CLOUDFLARE_ACCOUNT_ID")
+          [ -z "${CLOUDFLARE_PAGES_PROJECT_NAME:-}" ] && MISSING+=("CLOUDFLARE_PAGES_PROJECT_NAME")
+
+          echo "──────────────────────────────────────────"
+          echo " Config matrix (values never printed)"
+          echo "──────────────────────────────────────────"
+          printf "  %-40s %s\n" "CLOUDFLARE_API_TOKEN"          "$([ -n "${CLOUDFLARE_API_TOKEN:-}" ]          && echo present || echo MISSING)"
+          printf "  %-40s %s\n" "CLOUDFLARE_ACCOUNT_ID"         "$([ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]         && echo present || echo MISSING)"
+          printf "  %-40s %s\n" "CLOUDFLARE_PAGES_PROJECT_NAME" "$([ -n "${CLOUDFLARE_PAGES_PROJECT_NAME:-}" ] && echo present || echo MISSING)"
+          echo "──────────────────────────────────────────"
+          echo " Cloudflare Pages secrets (set via wrangler):"
+          echo "  PIN_SALT_SECRET            — must be set in Pages dashboard"
+          echo "  SESSION_SIGNING_SECRET     — must be set in Pages dashboard"
+          echo "──────────────────────────────────────────"
+
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "ERROR: Missing required GitHub secrets: ${MISSING[*]}"
+            echo "Set them with: gh secret set <NAME> --body <VALUE>"
+            exit 1
+          fi
+          echo "All required GitHub secrets present."
+
       - name: Format check
         run: npm run format:check
 

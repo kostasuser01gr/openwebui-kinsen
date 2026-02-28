@@ -110,6 +110,8 @@ export interface Env {
   ADMIN_TOKEN?: string;
   // Feature flags (Pages vars, not secrets)
   AUTH_MODE?: string; // "admin_only" | "open"  (default: admin_only)
+  SIGNUP_MODE?: string; // "open" | "invite_only" | "admin_only"  (default: open)
+  INVITE_CODE?: string; // required when SIGNUP_MODE=invite_only
   AI_PROVIDER?: string; // "workers_ai" | "none"  (default: workers_ai)
   DEFAULT_ROOM_ID?: string; // default: "global"
   ALLOW_OWNER_LOCK?: string; // "true" | "false"       (default: false)

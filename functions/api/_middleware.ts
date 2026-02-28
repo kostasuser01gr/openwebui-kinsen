@@ -13,6 +13,7 @@ function getRequiredPermission(path: string, method: string): string | null {
   // Public
   if (path === '/api/health') return null;
   if (path === '/api/auth/login') return null;
+  if (path === '/api/auth/signup') return null;
 
   // Auth-only (any logged-in user)
   if (path.startsWith('/api/auth/')) return 'chat';
@@ -60,7 +61,7 @@ function getRequiredPermission(path: string, method: string): string | null {
 export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
   const url = new URL(request.url);
-  const isAuthEndpoint = url.pathname === '/api/auth/login';
+  const isAuthEndpoint = url.pathname === '/api/auth/login' || url.pathname === '/api/auth/signup';
 
   const corsHeaders: Record<string, string> = {
     'Access-Control-Allow-Origin': url.origin,
